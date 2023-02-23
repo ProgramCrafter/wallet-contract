@@ -1,38 +1,32 @@
-#pragma version =0.2.0;
+#pragma version >=0.4.0;
 ;; Wallet smart contract with plugins
 
 (slice, int) dict_get?(cell dict, int key_len, slice index) asm(index dict key_len) "DICTGET" "NULLSWAPIFNOT";
 (cell, int) dict_add_builder?(cell dict, int key_len, slice index, builder value) asm(value index dict key_len) "DICTADDB";
 (cell, int) dict_delete?(cell dict, int key_len, slice index) asm(index dict key_len) "DICTDEL";
 
+() terminate_if(int cond) impure asm "IFRETALT";
+() terminate() impure asm "RETALT";
 () call_cont(cont) impure asm "CALLX";
+
 
 () recv_internal(int msg_value, cell in_msg_cell, slice in_msg) impure {
   var cs = in_msg_cell.begin_parse();
   var flags = cs~load_uint(4);  ;; int_msg_info$0 ihr_disabled:Bool bounce:Bool bounced:Bool
-  if (flags & 1) {
-    ;; ignore all bounced messages
-    return ();
-  }
-  if (in_msg.slice_bits() < 32) {
-    ;; ignore simple transfers
-    return ();
-  }
+  terminate_if(flags & 1);                 ;; ignore all bounced messages
+  terminate_if(in_msg.slice_bits() < 32);  ;; ignore simple transfers
+  
   int op = in_msg~load_uint(32);
-  if (op != 0x706c7567) & (op != 0x65786563) & (op != 0x64737472) { ;; "plug" & "exec" & "dstr"
-    ;; ignore all messages not related to plugins
-    return ();
-  }
-  slice s_addr = cs~load_msg_addr();
-  (int wc, int addr_hash) = parse_std_addr(s_addr);
-  slice wc_n_address = begin_cell().store_int(wc, 8).store_uint(addr_hash, 256).end_cell().begin_parse();
+  terminate_if((op != 0x706c7567) & (op != 0x65786563) & (op != 0x64737472));
+    ;; ignore all messages not related to plugins ("plug"/"exec"/"dstr")
+  
+  slice sender_addr = cs~load_msg_addr();
+  terminate_if(s_addr~load_bits(3) != 4);  ;; addr_std$10 anycast:0
   var ds = get_data().begin_parse().skip_bits(32 + 32 + 256);
   var plugins = ds~load_dict();
-  var (_, success?) = plugins.dict_get?(8 + 256, wc_n_address);
-  if ~(success?) {
-    ;; it may be a transfer
-    return ();
-  }
+  var (_, success?) = plugins.dict_get?(8 + 256, sender_addr);
+  terminate_if(~ success?);
+  
   int query_id = in_msg~load_uint(64);
   var msg = begin_cell();
   if (op == 0x706c7567) { ;; request funds
@@ -42,7 +36,7 @@
     throw_unless(80, my_balance - msg_value >= r_toncoins);
 
     msg = msg.store_uint(0x18, 6)
-             .store_slice(s_addr)
+             .store_slice(sender_addr)
              .store_grams(r_toncoins)
              .store_dict(r_extra)
              .store_uint(0, 4 + 4 + 64 + 32 + 1 + 1)
@@ -54,13 +48,13 @@
     in_msg.preload_ref().begin_parse().bless().call_cont();
   }
   if (op == 0x64737472) { ;; remove plugin by its request
-    plugins~dict_delete?(8 + 256, wc_n_address);
+    plugins~dict_delete?(8 + 256, sender_addr);
     var ds = get_data().begin_parse().first_bits(32 + 32 + 256);
     set_data(begin_cell().store_slice(ds).store_dict(plugins).end_cell());
     ;; return coins only if bounce expected
     if (flags & 2) {
       msg = msg.store_uint(0x18, 6)
-               .store_slice(s_addr)
+               .store_slice(sender_addr)
                .store_grams(0)
                .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
                .store_uint(0x64737472 | 0x80000000, 32)
@@ -97,7 +91,7 @@
       var mode = cs~load_uint(8);
       send_raw_message(cs~load_ref(), mode);
     }
-    return (); ;; have already saved the storage
+    terminate(); ;; have already saved the storage
   }
 
   if (op == 1) { ;; deploy and install plugin
@@ -107,8 +101,8 @@
     int plugin_address = cell_hash(state_init);
     slice wc_n_address = begin_cell().store_int(plugin_workchain, 8).store_uint(plugin_address, 256).end_cell().begin_parse();
     var msg = begin_cell()
-      .store_uint(0x18, 6)
-      .store_uint(4, 3).store_slice(wc_n_address)
+      .store_uint((0x18 << 3) + 4, 6 + 3)
+      .store_slice(wc_n_address)
       .store_grams(plugin_balance)
       .store_uint(4 + 2 + 1, 1 + 4 + 4 + 64 + 32 + 1 + 1 + 1)
       .store_ref(state_init)
