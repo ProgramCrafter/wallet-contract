@@ -1,2 +1,3 @@
-.idea/
-func/*.boc
+*.pk
+toncli.log
+toncli.err

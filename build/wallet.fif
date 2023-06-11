@@ -1,0 +1,690 @@
+"Asm.fif" include
+// automatically generated from `C:\Users\Tigr\AppData\Local\toncli\toncli\func-libs\error_codes.func` `C:\Users\Tigr\AppData\Local\toncli\toncli\func-libs\math.func` `C:\Users\Tigr\AppData\Local\toncli\toncli\func-libs\stdlib.func` `D:\TON_FunC\multisig-wallet-v5\func\wallet.fc` 
+PROGRAM{
+  DECLPROC power
+  DECLPROC sqrt
+  DECLPROC avg
+  DECLPROC exp
+  DECLPROC log2
+  DECLPROC calc_storage_fee_raw
+  DECLPROC calc_storage_fee
+  DECLPROC load_contract
+  DECLPROC save_contract
+  85143 DECLMETHOD seqno
+  78748 DECLMETHOD get_public_key
+  76407 DECLMETHOD is_plugin_installed
+  99710 DECLMETHOD get_plugin_cell
+  116329 DECLMETHOD get_plugin_storage
+  108216 DECLMETHOD resolve_plugin
+  107653 DECLMETHOD get_plugin_list
+  127040 DECLMETHOD get_plugin_list_with_cell
+  66326 DECLMETHOD get_plugin_list_resolved
+  72101 DECLMETHOD get_plugin_list_resolved_with_storage
+  DECLPROC check_any_signature
+  108438 DECLMETHOD uninstall_plugin
+  DECLPROC ~do
+  DECLPROC main
+  DECLPROC recv_external
+  DECLGLOBVAR plugins_storage
+  power PROCREF:<{
+    //  x exponent
+    OVER	//  x exponent x
+    0 EQINT	//  x exponent _3
+    IFJMP:<{	//  x exponent
+      2DROP	// 
+      0 PUSHINT	//  _4=0
+    }>	//  x exponent
+    DUP	//  x exponent exponent
+    0 EQINT	//  x exponent _6
+    IFJMP:<{	//  x exponent
+      2DROP	// 
+      1 PUSHINT	//  _7=1
+    }>	//  x exponent
+    OVER	//  x counter result
+    WHILE:<{
+      OVER	//  x counter result counter
+      1 GTINT	//  x counter result _11
+    }>DO<{	//  x counter result
+      s2 PUSH	//  x counter result x
+      MUL	//  x counter result
+      SWAP	//  x result counter
+      DEC	//  x result counter
+      SWAP	//  x counter result
+    }>	//  x counter result
+    2 1 BLKDROP2	//  result
+  }>
+  sqrt PROCREF:<{
+    //  x
+    DUP	//  x x
+    0 EQINT	//  x _2
+    IFJMP:<{	//  x
+      DROP	// 
+      0 PUSHINT	//  _3=0
+    }>	//  x
+    DUP	//  x x
+    4 LESSINT	//  x _5
+    IFJMP:<{	//  x
+      DROP	// 
+      1 PUSHINT	//  _6=1
+    }>	//  x
+    DUP	//  x x
+    INC	//  x _9
+    1 RSHIFT#	//  x z
+    OVER	//  x z y
+    WHILE:<{
+      2DUP	//  x z y z y
+      LESS	//  x z y _13
+    }>DO<{	//  x z y
+      DROP	//  x z
+      s0 s1 s0 PUSH3	//  x z y x z
+      DIV	//  x z y _14
+      ROT	//  x y _14 z
+      ADD	//  x y _15
+      1 RSHIFT#	//  x y z
+      SWAP	//  x z y
+    }>	//  x z y
+    2 1 BLKDROP2	//  y
+  }>
+  avg PROCREF:<{
+    //  x y
+    ADD	//  _2
+    1 RSHIFT#	//  _4
+  }>
+  exp PROCREF:<{
+    //  x
+    DUP	//  x x
+    -1 GTINT	//  x _2
+    IF:<{	//  x
+      POW2	//  _3
+    }>ELSE<{	//  x
+      1 PUSHINT	//  x _6=1
+      SWAP	//  _6=1 x
+      NEGATE	//  _6=1 _8
+      RSHIFT	//  _3
+    }>
+  }>
+  log2 PROCREF:<{
+    //  x
+    0 PUSHINT	//  x n=0
+    7 PUSHPOW2	//  x n=0 _3=128
+    exp INLINECALLDICT	//  x n=0 _4
+    s2 s(-1) PUXC	//  x n=0 x _4
+    GEQ	//  x n=0 _5
+    IF:<{	//  x n=0
+      DROP	//  x
+      128 RSHIFT#	//  x
+      7 PUSHPOW2	//  x n
+    }>	//  x n
+    64 PUSHINT	//  x n _10=64
+    exp INLINECALLDICT	//  x n _11
+    s2 s(-1) PUXC	//  x n x _11
+    GEQ	//  x n _12
+    IF:<{	//  x n
+      SWAP	//  n x
+      64 RSHIFT#	//  n x
+      SWAP	//  x n
+      64 ADDCONST	//  x n
+    }>	//  x n
+    32 PUSHINT	//  x n _17=32
+    exp INLINECALLDICT	//  x n _18
+    s2 s(-1) PUXC	//  x n x _18
+    GEQ	//  x n _19
+    IF:<{	//  x n
+      SWAP	//  n x
+      32 RSHIFT#	//  n x
+      SWAP	//  x n
+      32 ADDCONST	//  x n
+    }>	//  x n
+    16 PUSHINT	//  x n _24=16
+    exp INLINECALLDICT	//  x n _25
+    s2 s(-1) PUXC	//  x n x _25
+    GEQ	//  x n _26
+    IF:<{	//  x n
+      SWAP	//  n x
+      16 RSHIFT#	//  n x
+      SWAP	//  x n
+      16 ADDCONST	//  x n
+    }>	//  x n
+    8 PUSHINT	//  x n _31=8
+    exp INLINECALLDICT	//  x n _32
+    s2 s(-1) PUXC	//  x n x _32
+    GEQ	//  x n _33
+    IF:<{	//  x n
+      SWAP	//  n x
+      8 RSHIFT#	//  n x
+      SWAP	//  x n
+      8 ADDCONST	//  x n
+    }>	//  x n
+    4 PUSHINT	//  x n _38=4
+    exp INLINECALLDICT	//  x n _39
+    s2 s(-1) PUXC	//  x n x _39
+    GEQ	//  x n _40
+    IF:<{	//  x n
+      SWAP	//  n x
+      4 RSHIFT#	//  n x
+      SWAP	//  x n
+      4 ADDCONST	//  x n
+    }>	//  x n
+    2 PUSHINT	//  x n _45=2
+    exp INLINECALLDICT	//  x n _46
+    s2 s(-1) PUXC	//  x n x _46
+    GEQ	//  x n _47
+    IF:<{	//  x n
+      SWAP	//  n x
+      2 RSHIFT#	//  n x
+      SWAP	//  x n
+      2 ADDCONST	//  x n
+    }>	//  x n
+    1 PUSHINT	//  x n _52=1
+    exp INLINECALLDICT	//  x n _53
+    s1 s2 XCHG	//  n x _53
+    GEQ	//  n _54
+    IF:<{	//  n
+      INC	//  n
+    }>	//  n
+  }>
+  calc_storage_fee_raw PROCINLINE:<{
+    //  cells bits time
+    0 PUSHINT	//  cells bits time _5=0
+    18 PUSHINT	//  cells bits time _5=0 _6=18
+    CONFIGOPTPARAM	//  cells bits time _5=0 _7
+    32 PUSHINT	//  cells bits time _5=0 _7 _8=32
+    DICTIGET
+    NULLSWAPIFNOT	//  cells bits time _26 _27
+    DROP	//  cells bits time prices
+    168 PUSHINT	//  cells bits time prices _11=168
+    SDSKIPFIRST	//  cells bits time prices
+    64 LDU	//  cells bits time _14 prices
+    s0 s3 XCHG	//  cells prices time _14 bits
+    MUL	//  cells prices time base_fee
+    s0 s2 XCHG	//  cells base_fee time prices
+    64 LDU	//  cells base_fee time _31 _30
+    DROP	//  cells base_fee time _18
+    s0 s3 XCHG2	//  time base_fee _18 cells
+    MUL	//  time base_fee _21
+    ADD	//  time base_fee
+    SWAP	//  base_fee time
+    MUL	//  _23
+    16 RSHIFT#	//  _25
+  }>
+  calc_storage_fee PROCINLINE:<{
+    //  in time
+    SWAP
+    100000 PUSHINT	//  time in _5=100000
+    CDATASIZE	//  time _8 _9 _10
+    DROP	//  time cells bits
+    ROT	//  cells bits time
+    calc_storage_fee_raw INLINECALLDICT	//  _7
+  }>
+  load_contract PROCINLINE:<{
+    // 
+    c4 PUSH	//  _1
+    CTOS	//  ds
+    64 LDU	//  uid ds
+    LDDICT	//  uid plugins ds
+    LDDICT	//  uid plugins _12 ds
+    SWAP	//  uid plugins ds _12
+    plugins_storage SETGLOB
+    32 LDU	//  uid plugins key_type ds
+  }>
+  save_contract PROCINLINE:<{
+    //  uid plugins key_type key
+    plugins_storage GETGLOB	//  uid plugins key_type key _4
+    s0 s4 XCHG
+    NEWC	//  _4 plugins key_type key uid _5
+    64 STU	//  _4 plugins key_type key _7
+    s1 s3 XCHG	//  _4 key key_type plugins _7
+    STDICT	//  _4 key key_type _8
+    s1 s3 XCHG	//  key_type key _4 _8
+    STDICT	//  key_type key _9
+    s1 s2 XCHG	//  key key_type _9
+    32 STU	//  key _11
+    SWAP	//  _11 key
+    STSLICER	//  _12
+    ENDC	//  _13
+    c4 POP
+  }>
+  seqno PROC:<{
+    // 
+    load_contract INLINECALLDICT	//  _5 _6 _7 _8
+    3 BLKDROP	//  uid
+  }>
+  get_public_key PROC:<{
+    // 
+    load_contract INLINECALLDICT	//  _5 _6 _7 _8
+    s3 POP
+    NIP	//  key key_type
+  }>
+  is_plugin_installed PROC:<{
+    //  hash
+    load_contract INLINECALLDICT	//  hash _10 _11 _12 _13
+    s2 s3 XCHG
+    3 BLKDROP	//  hash plugins
+    8 PUSHPOW2	//  hash plugins _8=256
+    DICTUGETREF	//  _14 _15
+    NIP	//  found
+  }>
+  get_plugin_cell PROC:<{
+    //  hash
+    load_contract INLINECALLDICT	//  hash _10 _11 _12 _13
+    s2 s3 XCHG
+    3 BLKDROP	//  hash plugins
+    8 PUSHPOW2	//  hash plugins _8=256
+    DICTUGETREF	//  _14 _15
+    DROP	//  plugin
+  }>
+  get_plugin_storage PROC:<{
+    //  hash
+    load_contract INLINECALLDICT	//  hash _7 _8 _9 _10
+    4 BLKDROP	//  hash
+    plugins_storage GETGLOB	//  hash _4
+    8 PUSHPOW2	//  hash _4 _5=256
+    DICTUGETREF	//  _11 _12
+    DROP	//  plugin_data
+  }>
+  resolve_plugin PROC:<{
+    //  hash
+    load_contract INLINECALLDICT	//  hash _11 _12 _13 _14
+    s2 s3 XCHG
+    3 BLKDROP	//  hash plugins
+    8 PUSHPOW2	//  hash plugins _8=256
+    DICTUGETREF	//  _15 _16
+    DROP	//  plugin
+    CTOS	//  _10
+  }>
+  get_plugin_list PROC:<{
+    // 
+    NIL	//  list
+    load_contract INLINECALLDICT	//  list _16 _17 _18 _19
+    s2 s3 XCHG
+    3 BLKDROP	//  list plugins
+    WHILE:<{
+      DUP	//  list plugins plugins
+      ISNULL	//  list plugins _7
+      NOT	//  list plugins _8
+    }>DO<{	//  list plugins
+      8 PUSHPOW2	//  list plugins _13=256
+      DICTUREMMIN
+      NULLSWAPIFNOT2	//  list _23 _25 _24 _26
+      DROP
+      NIP	//  list plugins hash
+      ROT	//  plugins hash list
+      CONS	//  plugins list
+      SWAP	//  list plugins
+    }>	//  list plugins
+    DROP	//  list
+  }>
+  get_plugin_list_with_cell PROC:<{
+    // 
+    NIL	//  list
+    load_contract INLINECALLDICT	//  list _18 _19 _20 _21
+    s2 s3 XCHG
+    3 BLKDROP	//  list plugins
+    WHILE:<{
+      DUP	//  list plugins plugins
+      ISNULL	//  list plugins _7
+      NOT	//  list plugins _8
+    }>DO<{	//  list plugins
+      8 PUSHPOW2	//  list plugins _13=256
+      DICTUREMMIN
+      NULLSWAPIFNOT2	//  list _25 _27 _26 _28
+      DROP	//  list plugins plugin hash
+      SWAP	//  list plugins hash plugin
+      PLDREF	//  list plugins hash _15
+      PAIR	//  list plugins _16
+      ROT	//  plugins _16 list
+      CONS	//  plugins list
+      SWAP	//  list plugins
+    }>	//  list plugins
+    DROP	//  list
+  }>
+  get_plugin_list_resolved PROC:<{
+    // 
+    NIL	//  list
+    load_contract INLINECALLDICT	//  list _19 _20 _21 _22
+    s2 s3 XCHG
+    3 BLKDROP	//  list plugins
+    WHILE:<{
+      DUP	//  list plugins plugins
+      ISNULL	//  list plugins _7
+      NOT	//  list plugins _8
+    }>DO<{	//  list plugins
+      8 PUSHPOW2	//  list plugins _13=256
+      DICTUREMMIN
+      NULLSWAPIFNOT2	//  list _26 _28 _27 _29
+      DROP	//  list plugins plugin hash
+      SWAP	//  list plugins hash plugin
+      PLDREF	//  list plugins hash _15
+      CTOS	//  list plugins hash _16
+      PAIR	//  list plugins _17
+      ROT	//  plugins _17 list
+      CONS	//  plugins list
+      SWAP	//  list plugins
+    }>	//  list plugins
+    DROP	//  list
+  }>
+  get_plugin_list_resolved_with_storage PROC:<{
+    // 
+    NIL	//  list
+    load_contract INLINECALLDICT	//  list _24 _25 _26 _27
+    s2 s3 XCHG
+    3 BLKDROP	//  list plugins
+    WHILE:<{
+      DUP	//  list plugins plugins
+      ISNULL	//  list plugins _7
+      NOT	//  list plugins _8
+    }>DO<{	//  list plugins
+      8 PUSHPOW2	//  list plugins _13=256
+      DICTUREMMIN
+      NULLSWAPIFNOT2	//  list _31 _33 _32 _34
+      DROP	//  list plugins plugin hash
+      plugins_storage GETGLOB	//  list plugins plugin hash _17
+      s1 s(-1) PUXC
+      8 PUSHPOW2	//  list plugins plugin hash hash _17 _18=256
+      DICTUGETREF	//  list plugins plugin hash _35 _36
+      DROP	//  list plugins plugin hash data
+      s0 s2 XCHG	//  list plugins data hash plugin
+      PLDREF	//  list plugins data hash _20
+      CTOS	//  list plugins data hash _21
+      ROT	//  list plugins hash _21 data
+      TRIPLE	//  list plugins _22
+      ROT	//  plugins _22 list
+      CONS	//  plugins list
+      SWAP	//  list plugins
+    }>	//  list plugins
+    DROP	//  list
+  }>
+  check_any_signature PROCINLINE:<{
+    //  in_msg_body key_type key
+    s0 s2 XCHG	//  key key_type in_msg_body
+    LDREF	//  key key_type request in_msg_body
+    OVER	//  key key_type request in_msg_body request
+    HASHCU	//  key key_type request in_msg_body request_hash
+    s3 PUSH
+    8445519 PUSHINT	//  key key_type request in_msg_body request_hash key_type _8=8445519
+    EQUAL	//  key key_type request in_msg_body request_hash _9
+    IF:<{	//  key key_type request in_msg_body request_hash
+      s3 POP	//  key request_hash request in_msg_body
+      s0 s3 XCHG	//  in_msg_body request_hash request key
+      256 PLDU	//  in_msg_body request_hash request _12
+      s1 s3 XCHG	//  request request_hash in_msg_body _12
+      CHKSIGNU	//  request _13
+      310 THROWIFNOT
+    }>ELSE<{	//  key key_type request in_msg_body request_hash
+      s0 s3 XCHG
+      1692265451 PUSHINT	//  key request_hash request in_msg_body key_type _15=1692265451
+      EQUAL	//  key request_hash request in_msg_body _16
+      IF:<{	//  key request_hash request in_msg_body
+        s0 s3 XCHG2	//  request request_hash in_msg_body key
+        P256_CHKSIGNU	//  request _18
+        310 THROWIFNOT
+      }>ELSE<{	//  key request_hash request in_msg_body
+        s1 s3 XCHG
+        3 BLKDROP	//  request
+        311 THROW
+      }>
+    }>
+  }>
+  uninstall_plugin PROCINLINE:<{
+    //  plugins plugin_id
+    s0 s1 PUXC
+    8 PUSHPOW2	//  plugin_id plugin_id plugins _3=256
+    DICTUDEL	//  plugin_id _10 _11
+    DROP	//  plugin_id plugins
+    plugins_storage GETGLOB	//  plugin_id plugins _6
+    s1 s2 XCHG
+    8 PUSHPOW2	//  plugins plugin_id _6 _7=256
+    DICTUDEL	//  plugins _12 _13
+    DROP	//  plugins _9
+    plugins_storage SETGLOB
+  }>
+  ~do PROC:<{
+    //  action plugins
+    SWAP	//  plugins action
+    CTOS	//  plugins action
+    32 LDU	//  plugins op action
+    OVER
+    1055474673 PUSHINT	//  plugins op action op _8=1055474673
+    EQUAL	//  plugins op action _9
+    IF:<{	//  plugins op action
+      NIP	//  plugins action
+      LDREF	//  plugins _10 action
+      DUP	//  plugins _10 action action
+      8 PLDU	//  plugins _10 action _13
+      s1 s2 XCHG	//  plugins action _10 _13
+      SENDRAWMSG
+    }>ELSE<{	//  plugins op action
+      OVER
+      33210358 PUSHINT	//  plugins op action op _15=33210358
+      EQUAL	//  plugins op action _16
+      IF:<{	//  plugins op action
+        NIP	//  plugins action
+        DUP	//  plugins action action
+        256 PLDU	//  plugins action _18
+        s1 s2 XCHG	//  action plugins _18
+        uninstall_plugin INLINECALLDICT	//  action plugins
+      }>ELSE<{	//  plugins op action
+        OVER
+        2041458079 PUSHINT	//  plugins op action op _20=2041458079
+        EQUAL	//  plugins op action _21
+        IF:<{	//  plugins op action
+          NIP	//  plugins action
+          LDREF	//  plugins plugin action
+          OVER	//  plugins plugin action plugin
+          HASHCU	//  plugins plugin action plugin_hash
+          s2 s0 s3 PUXC2
+          8 PUSHPOW2	//  action plugin plugin plugin_hash plugins _28=256
+          DICTUSETREF	//  action plugin plugins
+          1140839503 PUSHINT	//  action plugin plugins _30=1140839503
+          24 PUSHINT	//  action plugin plugins _30=1140839503 _31=24
+          NEWC	//  action plugin plugins _30=1140839503 _31=24 _32
+          6 STU	//  action plugin plugins _30=1140839503 _34
+          x{9FFCA257FD2130F9E1A12835B5DFD3CE4922057EFD623585D454EDA67FC424FE531_} PUSHSLICE	//  action plugin plugins _30=1140839503 _34 _35
+          STSLICER	//  action plugin plugins _30=1140839503 _36
+          160000000 PUSHINT	//  action plugin plugins _30=1140839503 _36 _39
+          s4 PUSH
+          31536000 PUSHINT	//  action plugin plugins _30=1140839503 _36 _39 plugin _40=31536000
+          calc_storage_fee INLINECALLDICT	//  action plugin plugins _30=1140839503 _36 _39 _41
+          ADD	//  action plugin plugins _30=1140839503 _36 _42
+          STVARUINT16	//  action plugin plugins _30=1140839503 _43
+          139 STU	//  action plugin plugins _47
+          s1 s2 XCHG	//  action plugins plugin _47
+          STREF	//  action plugins _48
+          ENDC	//  action plugins _49
+          0 PUSHINT	//  action plugins _49 _50=0
+          SENDRAWMSG
+        }>ELSE<{	//  plugins op action
+          SWAP
+          1762183572 PUSHINT	//  plugins action op _52=1762183572
+          EQUAL	//  plugins action _53
+          IF:<{	//  plugins action
+            LDREF	//  plugins code action
+            SWAP	//  plugins action code
+            CTOS	//  plugins action _57
+            BLESS	//  plugins action _58
+            NIL	//  plugins action _58 _59
+            0 PUSHINT	//  plugins action _58 _59 _60=0
+            TPUSH
+            DEPTH DEC DEC 30 SETGLOB
+            255 PUSHINT EXPLODEVAR
+            DUP INC
+            ROLLX
+            SWAP
+            TRUE
+            CALLXVARARGS
+            DEPTH 30 GETGLOB SUB TUPLEVAR	//  plugins action _61
+            DROP	//  plugins action
+          }>ELSE<{	//  plugins action
+            303 THROW
+          }>
+          SWAP	//  action plugins
+        }>
+      }>
+      SWAP	//  plugins action
+    }>
+    PLDOPTREF	//  plugins _64
+    SWAP	//  _64 plugins
+  }>
+  main PROC:<{
+    //  balance msg_value in_msg in_msg_body
+    DUP	//  balance msg_value in_msg in_msg_body in_msg_body
+    SEMPTY	//  balance msg_value in_msg in_msg_body _4
+    IFJMP:<{	//  balance msg_value in_msg in_msg_body
+      4 BLKDROP	// 
+    }>	//  balance msg_value in_msg in_msg_body
+    OVER	//  balance msg_value in_msg in_msg_body in_msg
+    CTOS	//  balance msg_value in_msg in_msg_body in_msg_full
+    4 LDU	//  balance msg_value in_msg in_msg_body _7 in_msg_full
+    SWAP
+    1 PUSHINT	//  balance msg_value in_msg in_msg_body in_msg_full _7 _10=1
+    AND	//  balance msg_value in_msg in_msg_body in_msg_full _11
+    IFJMP:<{	//  balance msg_value in_msg in_msg_body in_msg_full
+      5 BLKDROP	// 
+    }>	//  balance msg_value in_msg in_msg_body in_msg_full
+    SWAP	//  balance msg_value in_msg in_msg_full in_msg_body
+    32 LDU	//  balance msg_value in_msg in_msg_full op in_msg_body
+    OVER
+    3288323151 PUSHINT	//  balance msg_value in_msg in_msg_full op in_msg_body op _16=3288323151
+    EQUAL	//  balance msg_value in_msg in_msg_full op in_msg_body _17
+    IF:<{	//  balance msg_value in_msg in_msg_full op in_msg_body
+      NIP
+      2 2 BLKDROP2
+      s2 POP	//  in_msg_body in_msg_full
+      LDMSGADDR	//  in_msg_body _80 _79
+      DROP	//  in_msg_body _18
+      x{9FFCA257FD2130F9E1A12835B5DFD3CE4922057EFD623585D454EDA67FC424FE531_} PUSHSLICE	//  in_msg_body _18 _20
+      SDEQ	//  in_msg_body _21
+      NOT	//  in_msg_body _22
+      IFRETALT
+      load_contract INLINECALLDICT	//  in_msg_body uid plugins key_type key
+      s0 s4 XCHG	//  key uid plugins key_type in_msg_body
+      256 LDU	//  key uid plugins key_type _86 _85
+      DROP	//  key uid plugins key_type plugin_id
+      s0 s2 PUSH2
+      8 PUSHPOW2	//  key uid plugins key_type plugin_id plugin_id plugins _35=256
+      DICTUGETREF	//  key uid plugins key_type plugin_id _87 _88
+      NIP	//  key uid plugins key_type plugin_id found
+      NOT	//  key uid plugins key_type plugin_id _37
+      IFRETALT
+      2 PUSHINT	//  key uid plugins key_type plugin_id _40=2
+      NEWC	//  key uid plugins key_type plugin_id _40=2 _41
+      8 STU	//  key uid plugins key_type plugin_id _43
+      s1 s(-1) PUXC	//  key uid plugins key_type plugin_id plugin_id _43
+      256 STU	//  key uid plugins key_type plugin_id _45
+      ONE ENDXC	//  key uid plugins key_type plugin_id exotic_plugin
+      s0 s2 XCHG
+      8 PUSHPOW2
+      s4 s2 XCHG2	//  key uid key_type exotic_plugin _48=256 plugins plugin_id
+      DICTUSETREF	//  key uid key_type plugins
+      s0 s1 s3 XCHG3	//  uid plugins key_type key
+      save_contract INLINECALLDICT
+    }>ELSE<{	//  balance msg_value in_msg in_msg_full op in_msg_body
+      s2 POP	//  balance msg_value in_msg in_msg_body op
+      1154835125 PUSHINT	//  balance msg_value in_msg in_msg_body op _51=1154835125
+      EQUAL	//  balance msg_value in_msg in_msg_body _52
+      IF:<{	//  balance msg_value in_msg in_msg_body
+        load_contract INLINECALLDICT	//  balance msg_value in_msg in_msg_body uid plugins key_type key
+        s0 s4 XCHG	//  balance msg_value in_msg key uid plugins key_type in_msg_body
+        256 LDU	//  balance msg_value in_msg key uid plugins key_type plugin_id in_msg_body
+        s1 s3 XCPU
+        8 PUSHPOW2	//  balance msg_value in_msg key uid plugins key_type in_msg_body plugin_id plugins _64=256
+        DICTUGETREF	//  balance msg_value in_msg key uid plugins key_type in_msg_body plugin found
+        300 THROWIFNOT
+        CTOS	//  balance msg_value in_msg key uid plugins key_type in_msg_body _68
+        BLESS	//  balance msg_value in_msg key uid plugins key_type in_msg_body _69
+        s3 s8 XCHG
+        s7 s6 s6 XCHG3	//  plugins key_type _69 key uid balance msg_value in_msg in_msg_body
+        4 TUPLE	//  plugins key_type _69 key uid _71
+        s1 s3 XCHG
+        121535 PUSHINT	//  plugins key_type uid key _69 _71 _72=121535
+        TPUSH
+        DEPTH DEC DEC 30 SETGLOB
+        255 PUSHINT EXPLODEVAR
+        DUP INC
+        ROLLX
+        SWAP
+        TRUE
+        CALLXVARARGS
+        DEPTH 30 GETGLOB SUB TUPLEVAR	//  plugins key_type uid key _73
+        DROP	//  plugins key_type uid key
+        s3 s3 s0 XCHG3	//  uid plugins key_type key
+        save_contract INLINECALLDICT
+      }>ELSE<{
+        4 BLKDROP	// 
+      }>
+    }>
+  }>
+  recv_external PROC:<{
+    //  in_msg_body
+    32 LDU	//  op in_msg_body
+    OVER
+    1158237173 PUSHINT	//  op in_msg_body op _6=1158237173
+    EQUAL	//  op in_msg_body _7
+    IF:<{	//  op in_msg_body
+      NIP	//  in_msg_body
+      load_contract INLINECALLDICT	//  in_msg_body uid plugins key_type key
+      s4 s1 s4 XCPU2	//  key uid plugins key_type in_msg_body key_type key
+      check_any_signature INLINECALLDICT	//  key uid plugins key_type _14
+      CTOS	//  key uid plugins key_type request
+      64 LDU	//  key uid plugins key_type _17 request
+      s1 s4 XCPU	//  key uid plugins key_type request _17 uid
+      EQUAL	//  key uid plugins key_type request _20
+      312 THROWIFNOT
+      s3 PUSH	//  key uid plugins key_type request uid
+      INC	//  key uid plugins key_type request _23
+      s3 s2 s5 PUSH3	//  key uid plugins key_type request _23 plugins key_type key
+      save_contract INLINECALLDICT
+      COMMIT
+      ACCEPT
+      PLDOPTREF	//  key uid plugins key_type action
+      WHILE:<{
+        DUP	//  key uid plugins key_type action action
+        ISNULL	//  key uid plugins key_type action _30
+        NOT	//  key uid plugins key_type action _31
+      }>DO<{	//  key uid plugins key_type action
+        ROT	//  key uid key_type action plugins
+        ~do CALLDICT	//  key uid key_type action plugins
+        -ROT	//  key uid plugins key_type action
+      }>	//  key uid plugins key_type action
+      DROP	//  key uid plugins key_type
+      s0 s2 XCHG	//  key key_type plugins uid
+      INC	//  key key_type plugins _35
+      s2 s3 XCHG2	//  _35 plugins key_type key
+      save_contract INLINECALLDICT
+    }>ELSE<{	//  op in_msg_body
+      SWAP
+      1154835125 PUSHINT	//  in_msg_body op _37=1154835125
+      EQUAL	//  in_msg_body _38
+      IF:<{	//  in_msg_body
+        load_contract INLINECALLDICT	//  in_msg_body uid plugins key_type key
+        s0 s4 XCHG	//  key uid plugins key_type in_msg_body
+        256 LDU	//  key uid plugins key_type plugin_id in_msg_body
+        s1 s3 XCPU
+        8 PUSHPOW2	//  key uid plugins key_type in_msg_body plugin_id plugins _50=256
+        DICTUGETREF	//  key uid plugins key_type in_msg_body plugin found
+        300 THROWIFNOT
+        CTOS	//  key uid plugins key_type in_msg_body _54
+        BLESS	//  key uid plugins key_type in_msg_body _55
+        SWAP	//  key uid plugins key_type _55 in_msg_body
+        SINGLE	//  key uid plugins key_type _55 _57
+        89430 PUSHINT	//  key uid plugins key_type _55 _57 _58=89430
+        TPUSH
+        DEPTH DEC DEC 30 SETGLOB
+        255 PUSHINT EXPLODEVAR
+        DUP INC
+        ROLLX
+        SWAP
+        TRUE
+        CALLXVARARGS
+        DEPTH 30 GETGLOB SUB TUPLEVAR	//  key uid plugins key_type _59
+        DROP	//  key uid plugins key_type
+        3 ROLL	//  uid plugins key_type key
+        save_contract INLINECALLDICT
+      }>ELSE<{
+        DROP	// 
+      }>
+    }>
+  }>
+}END>c
+
+boc>B "build/boc/wallet.boc" B>file

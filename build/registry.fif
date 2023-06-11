@@ -1,0 +1,323 @@
+"Asm.fif" include
+// automatically generated from `C:\Users\Tigr\AppData\Local\toncli\toncli\func-libs\error_codes.func` `C:\Users\Tigr\AppData\Local\toncli\toncli\func-libs\math.func` `C:\Users\Tigr\AppData\Local\toncli\toncli\func-libs\stdlib.func` `D:\TON_FunC\multisig-wallet-v5\func\registry.fc` 
+PROGRAM{
+  DECLPROC power
+  DECLPROC sqrt
+  DECLPROC avg
+  DECLPROC exp
+  DECLPROC log2
+  DECLPROC load_workchain
+  DECLPROC calc_storage_fee_raw
+  DECLPROC calc_storage_fee
+  DECLPROC main
+  90629 DECLMETHOD get_fee
+  power PROCREF:<{
+    //  x exponent
+    OVER	//  x exponent x
+    0 EQINT	//  x exponent _3
+    IFJMP:<{	//  x exponent
+      2DROP	// 
+      0 PUSHINT	//  _4=0
+    }>	//  x exponent
+    DUP	//  x exponent exponent
+    0 EQINT	//  x exponent _6
+    IFJMP:<{	//  x exponent
+      2DROP	// 
+      1 PUSHINT	//  _7=1
+    }>	//  x exponent
+    OVER	//  x counter result
+    WHILE:<{
+      OVER	//  x counter result counter
+      1 GTINT	//  x counter result _11
+    }>DO<{	//  x counter result
+      s2 PUSH	//  x counter result x
+      MUL	//  x counter result
+      SWAP	//  x result counter
+      DEC	//  x result counter
+      SWAP	//  x counter result
+    }>	//  x counter result
+    2 1 BLKDROP2	//  result
+  }>
+  sqrt PROCREF:<{
+    //  x
+    DUP	//  x x
+    0 EQINT	//  x _2
+    IFJMP:<{	//  x
+      DROP	// 
+      0 PUSHINT	//  _3=0
+    }>	//  x
+    DUP	//  x x
+    4 LESSINT	//  x _5
+    IFJMP:<{	//  x
+      DROP	// 
+      1 PUSHINT	//  _6=1
+    }>	//  x
+    DUP	//  x x
+    INC	//  x _9
+    1 RSHIFT#	//  x z
+    OVER	//  x z y
+    WHILE:<{
+      2DUP	//  x z y z y
+      LESS	//  x z y _13
+    }>DO<{	//  x z y
+      DROP	//  x z
+      s0 s1 s0 PUSH3	//  x z y x z
+      DIV	//  x z y _14
+      ROT	//  x y _14 z
+      ADD	//  x y _15
+      1 RSHIFT#	//  x y z
+      SWAP	//  x z y
+    }>	//  x z y
+    2 1 BLKDROP2	//  y
+  }>
+  avg PROCREF:<{
+    //  x y
+    ADD	//  _2
+    1 RSHIFT#	//  _4
+  }>
+  exp PROCREF:<{
+    //  x
+    DUP	//  x x
+    -1 GTINT	//  x _2
+    IF:<{	//  x
+      POW2	//  _3
+    }>ELSE<{	//  x
+      1 PUSHINT	//  x _6=1
+      SWAP	//  _6=1 x
+      NEGATE	//  _6=1 _8
+      RSHIFT	//  _3
+    }>
+  }>
+  log2 PROCREF:<{
+    //  x
+    0 PUSHINT	//  x n=0
+    7 PUSHPOW2	//  x n=0 _3=128
+    exp INLINECALLDICT	//  x n=0 _4
+    s2 s(-1) PUXC	//  x n=0 x _4
+    GEQ	//  x n=0 _5
+    IF:<{	//  x n=0
+      DROP	//  x
+      128 RSHIFT#	//  x
+      7 PUSHPOW2	//  x n
+    }>	//  x n
+    64 PUSHINT	//  x n _10=64
+    exp INLINECALLDICT	//  x n _11
+    s2 s(-1) PUXC	//  x n x _11
+    GEQ	//  x n _12
+    IF:<{	//  x n
+      SWAP	//  n x
+      64 RSHIFT#	//  n x
+      SWAP	//  x n
+      64 ADDCONST	//  x n
+    }>	//  x n
+    32 PUSHINT	//  x n _17=32
+    exp INLINECALLDICT	//  x n _18
+    s2 s(-1) PUXC	//  x n x _18
+    GEQ	//  x n _19
+    IF:<{	//  x n
+      SWAP	//  n x
+      32 RSHIFT#	//  n x
+      SWAP	//  x n
+      32 ADDCONST	//  x n
+    }>	//  x n
+    16 PUSHINT	//  x n _24=16
+    exp INLINECALLDICT	//  x n _25
+    s2 s(-1) PUXC	//  x n x _25
+    GEQ	//  x n _26
+    IF:<{	//  x n
+      SWAP	//  n x
+      16 RSHIFT#	//  n x
+      SWAP	//  x n
+      16 ADDCONST	//  x n
+    }>	//  x n
+    8 PUSHINT	//  x n _31=8
+    exp INLINECALLDICT	//  x n _32
+    s2 s(-1) PUXC	//  x n x _32
+    GEQ	//  x n _33
+    IF:<{	//  x n
+      SWAP	//  n x
+      8 RSHIFT#	//  n x
+      SWAP	//  x n
+      8 ADDCONST	//  x n
+    }>	//  x n
+    4 PUSHINT	//  x n _38=4
+    exp INLINECALLDICT	//  x n _39
+    s2 s(-1) PUXC	//  x n x _39
+    GEQ	//  x n _40
+    IF:<{	//  x n
+      SWAP	//  n x
+      4 RSHIFT#	//  n x
+      SWAP	//  x n
+      4 ADDCONST	//  x n
+    }>	//  x n
+    2 PUSHINT	//  x n _45=2
+    exp INLINECALLDICT	//  x n _46
+    s2 s(-1) PUXC	//  x n x _46
+    GEQ	//  x n _47
+    IF:<{	//  x n
+      SWAP	//  n x
+      2 RSHIFT#	//  n x
+      SWAP	//  x n
+      2 ADDCONST	//  x n
+    }>	//  x n
+    1 PUSHINT	//  x n _52=1
+    exp INLINECALLDICT	//  x n _53
+    s1 s2 XCHG	//  n x _53
+    GEQ	//  n _54
+    IF:<{	//  n
+      INC	//  n
+    }>	//  n
+  }>
+  load_workchain PROCINLINE:<{
+    // 
+    MYADDR	//  _2
+    REWRITESTDADDR	//  _4 _5
+    DROP	//  workchain
+  }>
+  calc_storage_fee_raw PROCINLINE:<{
+    //  cells bits time
+    18 PUSHINT	//  cells bits time _4=18
+    CONFIGOPTPARAM	//  cells bits time prices_by_workchain
+    0 PUSHINT	//  cells bits time prices_by_workchain _8=0
+    SWAP
+    32 PUSHINT	//  cells bits time _8=0 prices_by_workchain _9=32
+    DICTIGET
+    NULLSWAPIFNOT	//  cells bits time _33 _34
+    DROP	//  cells bits time prices
+    40 PUSHINT	//  cells bits time prices _12=40
+    SDSKIPFIRST	//  cells bits time prices
+    load_workchain INLINECALLDICT	//  cells bits time prices _14
+    -1 EQINT	//  cells bits time prices _16
+    IF:<{	//  cells bits time prices
+      7 PUSHPOW2	//  cells bits time prices _18=128
+      SDSKIPFIRST	//  cells bits time prices
+    }>	//  cells bits time prices
+    64 LDU	//  cells bits time _21 prices
+    s0 s3 XCHG	//  cells prices time _21 bits
+    MUL	//  cells prices time base_fee
+    s0 s2 XCHG	//  cells base_fee time prices
+    64 LDU	//  cells base_fee time _38 _37
+    DROP	//  cells base_fee time _25
+    s0 s3 XCHG2	//  time base_fee _25 cells
+    MUL	//  time base_fee _28
+    ADD	//  time base_fee
+    SWAP	//  base_fee time
+    MUL	//  _30
+    16 RSHIFT#	//  _32
+  }>
+  calc_storage_fee PROCINLINE:<{
+    //  in time
+    SWAP
+    100000 PUSHINT	//  time in _5=100000
+    CDATASIZE	//  time _8 _9 _10
+    DROP	//  time cells bits
+    ROT	//  cells bits time
+    calc_storage_fee_raw INLINECALLDICT	//  _7
+  }>
+  main PROC:<{
+    //  new_balance msg_value in_msg in_msg_body
+    s3 POP	//  in_msg_body msg_value in_msg
+    s2 PUSH	//  in_msg_body msg_value in_msg in_msg_body
+    SBITS	//  in_msg_body msg_value in_msg _4
+    32 LESSINT	//  in_msg_body msg_value in_msg _6
+    IFRETALT
+    CTOS	//  in_msg_body msg_value in_msg_full
+    4 LDU	//  in_msg_body msg_value _10 in_msg_full
+    SWAP
+    1 PUSHINT	//  in_msg_body msg_value in_msg_full _10 _13=1
+    AND	//  in_msg_body msg_value in_msg_full _14
+    IFRETALT
+    16 PUSHPOW2DEC	//  in_msg_body msg_value in_msg_full _16=65535
+    s0 s3 XCHG	//  _16=65535 msg_value in_msg_full in_msg_body
+    32 LDU	//  _16=65535 msg_value in_msg_full _17 in_msg_body
+    SWAP
+    1140839503 PUSHINT	//  _16=65535 msg_value in_msg_full in_msg_body _17 _20=1140839503
+    EQUAL	//  _16=65535 msg_value in_msg_full in_msg_body _21
+    s1 s4 XCHG	//  in_msg_body msg_value in_msg_full _16=65535 _21
+    THROWANYIFNOT
+    s0 s2 XCHG	//  in_msg_full msg_value in_msg_body
+    LDREF	//  in_msg_full msg_value _98 _97
+    DROP	//  in_msg_full msg_value library
+    DUP
+    31536000 PUSHINT	//  in_msg_full msg_value library library _27=31536000
+    calc_storage_fee INLINECALLDICT	//  in_msg_full msg_value library fee
+    115000000 PUSHINT	//  in_msg_full msg_value library fee _33
+    ADD	//  in_msg_full msg_value library _34
+    s1 s2 XCHG	//  in_msg_full library msg_value _34
+    SUB	//  in_msg_full library msg_value
+    DUP	//  in_msg_full library msg_value msg_value
+    -1 GTINT	//  in_msg_full library msg_value _38
+    130 THROWIFNOT
+    c4 PUSH	//  in_msg_full library msg_value stored
+    DUP	//  in_msg_full library msg_value stored stored
+    CTOS	//  in_msg_full library msg_value stored _42
+    SEMPTY	//  in_msg_full library msg_value stored _43
+    IF:<{	//  in_msg_full library msg_value stored
+      DROP	//  in_msg_full library msg_value
+      PUSHNULL	//  in_msg_full library msg_value stored
+    }>	//  in_msg_full library msg_value stored
+    s2 PUSH	//  in_msg_full library msg_value stored library
+    HASHCU	//  in_msg_full library msg_value stored _46
+    s3 PUSH
+    s0 s2 XCHG
+    8 PUSHPOW2	//  in_msg_full library msg_value library _46 stored _47=256
+    DICTUSETREF	//  in_msg_full library msg_value stored
+    c4 POP
+    OVER	//  in_msg_full library msg_value library
+    2 PUSHINT SETLIBCODE
+    NIL	//  in_msg_full library msg_value _52
+    s2 s(-1) PUXC
+    119703 PUSHINT	//  in_msg_full library msg_value library _52 _53=119703
+    TPUSH
+    DEPTH DEC DEC 30 SETGLOB
+    255 PUSHINT EXPLODEVAR
+    DUP INC
+    ROLLX
+    CTOS 1 RUNVM
+    DEPTH 30 GETGLOB SUB TUPLEVAR	//  in_msg_full library msg_value bounty_addr_tuple
+    FIRST	//  in_msg_full library msg_value bounty_addr
+    DUP	//  in_msg_full library msg_value bounty_addr bounty_addr
+    REWRITESTDADDR	//  in_msg_full library msg_value bounty_addr _101 _102
+    2DROP	//  in_msg_full library msg_value bounty_addr
+    0 PUSHINT	//  in_msg_full library msg_value bounty_addr _59=0
+    24 PUSHINT	//  in_msg_full library msg_value bounty_addr _59=0 _60=24
+    NEWC	//  in_msg_full library msg_value bounty_addr _59=0 _60=24 _61
+    6 STU	//  in_msg_full library msg_value bounty_addr _59=0 _63
+    ROT	//  in_msg_full library msg_value _59=0 _63 bounty_addr
+    STSLICER	//  in_msg_full library msg_value _59=0 _64
+    100000000 PUSHINT	//  in_msg_full library msg_value _59=0 _64 _65=100000000
+    STVARUINT16	//  in_msg_full library msg_value _59=0 _66
+    107 STU	//  in_msg_full library msg_value _68
+    ENDC	//  in_msg_full library msg_value _69
+    0 PUSHINT	//  in_msg_full library msg_value _69 _70=0
+    SENDRAWMSG
+    SWAP	//  in_msg_full msg_value library
+    HASHCU	//  in_msg_full msg_value _72
+    3288323151 PUSHINT	//  in_msg_full msg_value _72 _73=3288323151
+    24 PUSHINT	//  in_msg_full msg_value _72 _73=3288323151 _74=24
+    NEWC	//  in_msg_full msg_value _72 _73=3288323151 _74=24 _75
+    6 STU	//  in_msg_full msg_value _72 _73=3288323151 _77
+    s0 s4 XCHG	//  _77 msg_value _72 _73=3288323151 in_msg_full
+    LDMSGADDR	//  _77 msg_value _72 _73=3288323151 _104 _103
+    DROP	//  _77 msg_value _72 _73=3288323151 _78
+    s1 s4 XCHG	//  _73=3288323151 msg_value _72 _77 _78
+    STSLICER	//  _73=3288323151 msg_value _72 _80
+    ROT	//  _73=3288323151 _72 _80 msg_value
+    STVARUINT16	//  _73=3288323151 _72 _81
+    s1 s2 XCHG	//  _72 _73=3288323151 _81
+    143 STU	//  _72 _87
+    256 STU	//  _89
+    ENDC	//  _90
+    0 PUSHINT	//  _90 _91=0
+    SENDRAWMSG
+  }>
+  get_fee PROC:<{
+    //  library
+    31536000 PUSHINT	//  library _1=31536000
+    calc_storage_fee INLINECALLDICT	//  _2
+    115000000 PUSHINT	//  _2 _7
+    ADD	//  _8
+  }>
+}END>c
+
+boc>B "build/boc/registry.boc" B>file

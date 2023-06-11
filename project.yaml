@@ -1,0 +1,24 @@
+plugin:
+  fift:
+    - fift/exotic.fif
+  func:
+    - func/plugin.fc
+  tests:
+    - tests/plugin.fc
+
+registry:
+  fift:
+    - fift/exotic.fif
+  func:
+    - func/registry.fc
+  tests:
+    - tests/registry.fc
+
+wallet:
+  fift:
+    - fift/exotic.fif
+  func:
+    - func/wallet.fc
+  tests:
+    - tests/wallet.fc
+  

@@ -1,0 +1,47 @@
+cell plugin_code() asm
+  "B{B5EE9C7201010801005F000114FF00F4A413F4BCF2C80B010201620203000AD0840FF2F00201200405000BBEEAB7F101840202750607004DADCBC6843002CA87B3D551781DB34DAB945BA9FAF7CCABA80232A8AE12BE619AFB2C822256B6400011AD5F89AF81FF101840}"
+  "B>boc PUSHREF";
+
+forall X -> tuple tuple_set_index(tuple t, X value, int index) asm "SETINDEXVAR";
+[tuple] ::get_c7() asm "c7 PUSHCTR";
+() ::set_c7([tuple]) impure asm "c7 POPCTR";
+
+cell param18() asm "x{D06600000000000000000000000080000000000000FA00000000000001F4000000000003D0904_} s>c PUSHREF";
+() init_config() impure {
+  cell config = null();
+  config~udict_set_ref(32, 18, param18());
+  
+  ::get_c7().unsingle().tuple_set_index(config, 9).single().::set_c7();
+}
+
+
+() __test_donation_transfer() {
+  invoke_method(main, [0, 1000, begin_cell().end_cell(), begin_cell().end_cell().begin_parse()]);
+}
+_ __test_add_plugin_too_low_funds() {
+  init_config();
+  cell in_msg_full = begin_cell().store_uint(0, 4).store_slice(my_address()).end_cell();
+  slice in_msg_body = begin_cell().store_uint(0x43ffd44f, 32).store_ref(plugin_code()).end_cell().begin_parse();
+  return invoke_method_expect_fail(main, [0, 1000, in_msg_full, in_msg_body]);
+}
+_ __test_add_plugin_invalid_opcode() {
+  init_config();
+  cell in_msg_full = begin_cell().store_uint(0, 4).store_slice(my_address()).end_cell();
+  slice in_msg_body = begin_cell().store_uint(0x43ffd400, 32).store_ref(plugin_code()).end_cell().begin_parse();
+  return invoke_method_expect_fail(main, [0, 1000, in_msg_full, in_msg_body]);
+}
+_ __test_add_plugin_no_config() {
+  cell in_msg_full = begin_cell().store_uint(0, 4).store_slice(my_address()).end_cell();
+  slice in_msg_body = begin_cell().store_uint(0x43ffd44f, 32).store_ref(plugin_code()).end_cell().begin_parse();
+  return invoke_method_expect_fail(main, [0, 10 * 1000000000, in_msg_full, in_msg_body]);
+}
+_ __test_add_plugin_success() {
+  init_config();
+  cell in_msg_full = begin_cell().store_uint(0, 4).store_slice(my_address()).end_cell();
+  slice in_msg_body = begin_cell().store_uint(0x43ffd44f, 32).store_ref(plugin_code()).end_cell().begin_parse();
+  return invoke_method(main, [0, 10 * 1000000000, in_msg_full, in_msg_body]);
+}
+_ __test_plugin_total_fee_get() {
+  init_config();
+  return get_fee(plugin_code());
+}

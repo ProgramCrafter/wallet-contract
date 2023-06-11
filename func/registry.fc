@@ -1,0 +1,104 @@
+;; -------------------------- STORAGE FEE CALCULATION --------------------------
+
+int load_workchain() inline {
+  (int workchain, _) = parse_std_addr(my_address());
+  return workchain;
+}
+int calc_storage_fee_raw(int cells, int bits, int time) inline {
+  cell prices_by_workchain = config_param(18);
+  ;; (slice prices, _) = prices_by_workchain.idict_get?(32, load_workchain());
+  (slice prices, _) = prices_by_workchain.idict_get?(32, 0);
+  
+  ;; _#cc utime_since:uint32 bit_price_ps:uint64 cell_price_ps:uint64 ...
+  prices~skip_bits(40);
+  
+  if (load_workchain() == -1) {  ;; ... mc_bit_price_ps:uint64 mc_cell_price_ps:uint64
+    prices~skip_bits(128);
+  }
+  
+  int base_fee = prices~load_uint(64) * bits;
+  base_fee += prices~load_uint(64) * cells;
+  return base_fee * time / 65536;              ;; to be optimized with MULRSHIFT
+}
+int calc_storage_fee(cell in, int time) inline {
+  (int cells, int bits, _) = in.compute_data_size(100000);
+  return calc_storage_fee_raw(cells, bits, time);
+}
+
+const int storage_time = 86400 * 365;
+const int milliton = 1000000;
+const int bounty = 100 * milliton;
+
+
+;; ----------------- TERMINATION PRIMITIVES NOT CLEANING STACK -----------------
+
+() terminate()          impure asm "RETALT";
+() terminate_if(int)    impure asm "IFRETALT";
+
+
+;; --------------------------- VM ISOLATED EXECUTION ---------------------------
+
+tuple vm::invoke(tuple args, int method, cell f) asm(f args method)
+  "TPUSH" "DEPTH DEC DEC 30 SETGLOB" "255 PUSHINT EXPLODEVAR" "DUP INC" "ROLLX"
+  "CTOS 1 RUNVM" "DEPTH 30 GETGLOB SUB TUPLEVAR";
+
+
+;; ------------------------------ MISC PRIMITIVES ------------------------------
+
+() publish_library(cell lib) impure asm "2 PUSHINT SETLIBCODE";
+forall X, Y -> (X, Y) impure_touch_dup(X, Y) impure asm "NOP";
+
+
+;; ------------------------------- RECV_INTERNAL -------------------------------
+;; _ stored_libraries:(Hashmap 256 ^Cell) = ContractData;
+;; request_store#43ffd44f library:^Cell = InMsgBody;
+;; store_success#c3ffd44f hash:uint256 = OutMsgBody;
+;; store_failure#ffffffff _#43ffd44f = OutMsgBody;
+
+() main(int new_balance, int msg_value, cell in_msg, slice in_msg_body) {
+  terminate_if(in_msg_body.slice_bits() < 32);
+  
+  slice in_msg_full = in_msg.begin_parse();
+  terminate_if(in_msg_full~load_uint(4) & 1);   ;; bounced
+  
+  throw_unless(65535, in_msg_body~load_uint(32) == 0x43ffd44f);
+  
+  cell library = in_msg_body~load_ref();
+  int fee = calc_storage_fee(library, storage_time);
+  msg_value -= fee + (bounty + 15 * milliton);
+  throw_unless(130, msg_value >= 0);
+  
+  ;; updating storage
+  ;; exotic cells cannot rewrite standard ones because they have different infinite-level hashes
+  cell stored = get_data();
+  if (stored.begin_parse().slice_empty?()) { stored = null(); }
+  stored~udict_set_ref(256, library.cell_hash(), library);
+  set_data(stored);
+  
+  ;; publishing library (if this contract is in masterchain, this makes it accessible to the whole blockchain)
+  library.publish_library();
+  
+  ;; sending bounty to the library creator
+  tuple bounty_addr_tuple = vm::invoke(empty_tuple(), 119703, library);
+  slice bounty_addr = bounty_addr_tuple.first();
+  impure_touch_dup(bounty_addr.parse_std_addr()); ;; ensuring that the address is valid and not rewriting amount to send
+  send_raw_message(begin_cell()
+    .store_uint(0x18, 6)
+    .store_slice(bounty_addr)
+    .store_coins(bounty)
+    .store_uint(0, 107)
+    .end_cell(), 0);
+  
+  ;; responding to sender
+  send_raw_message(begin_cell()
+    .store_uint(0x18, 6)
+    .store_slice(in_msg_full~load_msg_addr())
+    .store_coins(msg_value)
+    .store_uint(0xc3ffd44f, 4 + 107 + 32)
+    .store_uint(library.cell_hash(), 256)
+    .end_cell(), 0);
+}
+
+int get_fee(cell library) method_id {
+  return calc_storage_fee(library, storage_time) + (bounty + 15 * milliton);
+}

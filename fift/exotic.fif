@@ -1,0 +1,19 @@
+
+{ 1 { <b swap s, swap 12 u, @addopb } does create } : @Defop(12u)
+
+x{CF23} @Defop ENDXC
+x{F82A} @Defop MYCODE
+x{F835} @Defop GLOBALID
+x{DB4} @Defop(12u) RUNVM
+x{DB50} @Defop RUNVMX
+x{F802} @Defop GASCONSUMED
+x{F912} @Defop ECRECOVER
+x{F914} @Defop P256_CHKSIGNU
+x{F915} @Defop P256_CHKSIGNS
+x{F93000} @Defop BLS_VERIFY
+x{F93001} @Defop BLS_AGGREGATE
+x{F93002} @Defop BLS_FASTAGGREGATEVERIFY
+x{F93003} @Defop BLS_AGGREGATEVERIFY
+
+<b 8 4 u, 8 4 u, "fift/config-validators.boc" file>B B>boc ref, b> <s @Defop LDVALCFG
+

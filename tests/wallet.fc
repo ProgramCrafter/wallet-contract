@@ -1,0 +1,69 @@
+slice public_ed25519_key() asm "<b 20230610 256 u>B priv>pub B, b> <s PUSHSLICE";
+slice sign(int data, int private_key) asm "SIGN";
+forall X -> tuple tuple_set_index(tuple t, X value, int index) asm "SETINDEXVAR";
+[tuple] ::get_c7() asm "c7 PUSHCTR";
+() ::set_c7([tuple]) impure asm "c7 POPCTR";
+
+cell plugin_code() asm
+  "B{B5EE9C7201010801005F000114FF00F4A413F4BCF2C80B010201620203000AD0840FF2F00201200405000BBEEAB7F101840202750607004DADCBC6843002CA87B3D551781DB34DAB945BA9FAF7CCABA80232A8AE12BE619AFB2C822256B6400011AD5F89AF81FF101840}"
+  "B>boc PUSHREF";
+
+() init() impure {
+  set_data(begin_cell()
+    ;; .store_uint(0, 64)
+    ;; .store_uint(0, 2)
+    ;; .store_uint(0x0080de4f, 32)
+    .store_uint(0x0080de4f, 98)
+    .store_slice(public_ed25519_key())
+    .end_cell());
+}
+cell param18() asm "x{D06600000000000000000000000080000000000000FA00000000000001F4000000000003D0904_} s>c PUSHREF";
+() init_config() impure {
+  cell config = null();
+  config~udict_set_ref(32, 18, param18());
+  
+  ::get_c7().unsingle().tuple_set_index(config, 9).single().::set_c7();
+}
+
+() __test_void_external() {
+  invoke_method_expect_fail(recv_external, [begin_cell().end_cell().begin_parse()]);
+}
+() __test_external_noinit() {
+  cell ext = begin_cell().store_uint(op::do_signed, 32).end_cell();
+  invoke_method_expect_fail(recv_external, [ext.begin_parse()]);
+}
+() __test_short_external() {
+  init();
+  cell ext = begin_cell().store_uint(op::do_signed, 32).end_cell();
+  invoke_method_expect_fail(recv_external, [ext.begin_parse()]);
+}
+() __test_short2_external() {
+  init();
+  cell request = begin_cell().store_uint(0, 64).end_cell();
+  cell ext = begin_cell().store_uint(op::do_signed, 32).store_ref(request).end_cell();
+  invoke_method_expect_fail(recv_external, [ext.begin_parse()]);
+}
+() __test_accepted_external() {
+  init();
+  cell request = begin_cell().store_uint(0, 65).end_cell();
+  slice signature = sign(request.cell_hash(), 20230610);
+  cell ext = begin_cell().store_uint(op::do_signed, 32).store_slice(signature).store_ref(request).end_cell();
+  invoke_method(recv_external, [ext.begin_parse()]);
+}
+() __test_add_plugin() {
+  init(); init_config();
+  cell action = begin_cell().store_uint(0x79ae2d9f << 1, 33).store_ref(plugin_code()).end_cell();
+  cell request = begin_cell().store_uint(1, 65).store_ref(action).end_cell();
+  slice signature = sign(request.cell_hash(), 20230610);
+  cell ext = begin_cell().store_uint(op::do_signed, 32).store_slice(signature).store_ref(request).end_cell();
+  invoke_method(recv_external, [ext.begin_parse()]);
+}
+() __test_transfer() {
+  init(); init_config();
+  cell message = begin_cell().store_uint(0x18 << 2, 8).store_coins(1000).store_uint(0, 107).end_cell();
+  cell action = begin_cell().store_uint(0x3ee943f1, 32).store_uint(1 << 1, 9).store_ref(message).end_cell();
+  cell request = begin_cell().store_uint(1, 65).store_ref(action).end_cell();
+  slice signature = sign(request.cell_hash(), 20230610);
+  cell ext = begin_cell().store_uint(op::do_signed, 32).store_slice(signature).store_ref(request).end_cell();
+  invoke_method(recv_external, [ext.begin_parse()]);
+}

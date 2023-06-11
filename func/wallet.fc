@@ -1,0 +1,285 @@
+cell end_exotic(builder b) impure asm "ONE ENDXC";
+forall X, Y -> Y unsafe::transmute(X) asm "NOP";
+int equal_slices(slice a, slice b) asm "SDEQ";
+() terminate_if(int) impure asm "IFRETALT";
+() terminate() impure asm "RETALT";
+
+() _dump_used_gas() impure asm "GASCONSUMED s0 DUMP DROP"
+  "4445 PUSHINT s0 DUMP DROP"
+  "137416471408024662391516318541024342064 PUSHINT s0 DUMP DROP";
+() dump_used_gas() asm "NOP";
+
+;; -------------------------- STORAGE FEE CALCULATION --------------------------
+
+int calc_storage_fee_raw(int cells, int bits, int time) inline {
+  (slice prices, _) = config_param(18).idict_get?(32, 0);
+  ;; _#cc utime_since:uint32 bit_price_ps:uint64 cell_price_ps:uint64
+  ;;     mc_bit_price_ps:uint64 mc_cell_price_ps:uint64
+  prices~skip_bits(168);
+  int base_fee = prices~load_uint(64) * bits;
+  base_fee += prices~load_uint(64) * cells;
+  return base_fee * time / 65536;
+}
+int calc_storage_fee(cell in, int time) inline {
+  (int cells, int bits, _) = in.compute_data_size(100000);
+  return calc_storage_fee_raw(cells, bits, time);
+}
+
+const int storage_time = 86400 * 365;
+const int milliton = 1000000;
+
+;; -------------------------- NON-ISOLATED EXECUTION ---------------------------
+
+;; no need to RUNVM; the plugin is trusted code anyway
+tuple invoke(cont f, tuple args, int method) impure asm
+  "TPUSH" "DEPTH DEC DEC 30 SETGLOB" "255 PUSHINT EXPLODEVAR" "DUP INC" "ROLLX"
+  "SWAP" "TRUE" "CALLXVARARGS"
+  "DEPTH 30 GETGLOB SUB TUPLEVAR";
+
+;; ---------------------------------- STORAGE ----------------------------------
+
+const int op::invoke_onchain   = 0x6908c994;
+const int op::install_plugin   = 0x79ae2d9f;
+const int op::uninstall_plugin = 0x01fabff6;
+
+const int op::invoke_plugin = 0x44d562b5;
+const int op::do_signed     = 0x45094bf5;
+const int op::store_success = 0xc3ffd44f;
+
+const slice lib_registry = "Ef_lEr_pCYfPDQlBra7-nnJJECv36xGsLqKnbTP-ISfymP0e"a;
+
+global cell plugins_storage;
+
+;; invoke_onchain#6908c994 code:^Cell next:(Maybe ^Action) = Action;
+;; install_plugin#79ae2d9f code:^Cell next:(Maybe ^Action) = Action;
+;; uninstall_plugin#01fabff6 id:uint256 next:(Maybe ^Action) = Action;
+;; transfer#3ee943f1 message:^Cell mode:uint8 next:(Maybe ^Action) = Action;
+
+;; do_signed#45094bf5 signature:? request:^[uid:uint64 do:(Maybe ^Action)] = ExtInMsgBody;
+;; invoke_plugin#44d562b5 id:uint256 data:Any = ExtInMsgBody;
+
+;; store_success#c3ffd44f id:uint256 = IntInMsgBody;
+;; invoke_plugin#44d562b5 id:uint256 data:Any = IntInMsgBody;
+
+;; request_store#43ffd44f library:^Cell = OutMsgBody;
+
+(int, cell, int, slice) load_contract() impure inline {
+  ;; key::public::ed25519#0080de4f    key:bits256 = Key;
+  ;; key::public::bls#4d54d8d4        key:bits384 = Key;
+  ;; key::public::secp256r1#64ddebeb  key:bits264 = Key;
+  
+  ;; recommended for plugins:
+  ;; key::hash::sha256#c8a47409      hash:bits256 = Key;
+  ;; key::hash::sha512#aeea6391      hash:bits512 = Key;
+  ;; key::hash::blake2b#ec478dd9     hash:bits512 = Key;
+  ;; key::hash::keccak256#88b8de30   hash:bits256 = Key;
+  ;; key::hash::keccak512#eef6c9a8   hash:bits512 = Key;
+  
+  ;; _ uid:{subwallet_id:uint32 seqno:uint32} plugins:(HashmapE 256 ^Cell)
+  ;;     plugins_storage:(HashmapE 256 ^Cell) owner_key:Key = Storage;
+  slice ds = get_data().begin_parse();
+  int uid = ds~load_uint(64);
+  cell plugins = ds~load_dict();
+  plugins_storage = ds~load_dict();
+  int key_type = ds~load_uint(32);
+  return (uid, plugins, key_type, ds);
+}
+
+() save_contract(int uid, cell plugins, int key_type, slice key) impure inline {
+  set_data(begin_cell().store_uint(uid, 64).store_dict(plugins).store_dict(plugins_storage).store_uint(key_type, 32).store_slice(key).end_cell());
+}
+;; -------------------------------- GET-METHODS --------------------------------
+
+int seqno() method_id {
+  (int uid, _, _, _) = load_contract();
+  return uid; 
+}
+(slice, int) get_public_key() method_id {
+  (_, _, int key_type, slice key) = load_contract();
+  return (key, key_type);
+}
+int is_plugin_installed(int hash) method_id {
+  (_, cell plugins, _, _) = load_contract();
+  (_, int found) = plugins.udict_get_ref?(256, hash);
+  return found;
+}
+cell get_plugin_cell(int hash) method_id {
+  (_, cell plugins, _, _) = load_contract();
+  (cell plugin, _) = plugins.udict_get_ref?(256, hash);
+  return plugin;
+}
+cell get_plugin_storage(int hash) method_id {
+  load_contract();
+  (cell plugin_data, _) = plugins_storage.udict_get_ref?(256, hash);
+  return plugin_data;
+}
+slice resolve_plugin(int hash) method_id {
+  (_, cell plugins, _, _) = load_contract();
+  (cell plugin, _) = plugins.udict_get_ref?(256, hash);
+  return plugin.begin_parse();
+}
+tuple get_plugin_list() method_id {
+  tuple list = empty_tuple();    (_, cell plugins, _, _) = load_contract();
+  while (~ cell_null?(plugins)) {
+    (int hash, _, _) = plugins~udict::delete_get_min(256);
+    list = cons(hash, list);
+  }
+  return list;
+}
+tuple get_plugin_list_with_cell() method_id {
+  tuple list = empty_tuple();    (_, cell plugins, _, _) = load_contract();
+  while (~ cell_null?(plugins)) {
+    (int hash, slice plugin, _) = plugins~udict::delete_get_min(256);
+    list = cons(pair(hash, plugin.preload_ref()), list);
+  }
+  return list;
+}
+tuple get_plugin_list_resolved() method_id {
+  tuple list = empty_tuple();    (_, cell plugins, _, _) = load_contract();
+  while (~ cell_null?(plugins)) {
+    (int hash, slice plugin, _) = plugins~udict::delete_get_min(256);
+    list = cons(pair(hash, plugin.preload_ref().begin_parse()), list);
+  }
+  return list;
+}
+tuple get_plugin_list_resolved_with_storage() method_id {
+  tuple list = empty_tuple();    (_, cell plugins, _, _) = load_contract();
+  while (~ cell_null?(plugins)) {
+    (int hash, slice plugin, _) = plugins~udict::delete_get_min(256);
+    (cell data, _) = plugins_storage.udict_get_ref?(256, hash);
+    list = cons(triple(hash, plugin.preload_ref().begin_parse(), data), list);
+  }
+  return list;
+}
+
+;; ------------------------- SIGNATURE CHECKING METHOD -------------------------
+
+int check_secp256r1(int signed, slice signature, slice key) asm "P256_CHKSIGNU";
+int check_bls(slice signed, slice signature, slice key) asm "-ROLL ONE SWAP BLS_AGGREGATEVERIFY";
+
+cell check_any_signature(slice in_msg_body, int key_type, slice key) impure inline {
+  cell request = in_msg_body~load_ref();
+  int request_hash = request.cell_hash();
+  
+  if (key_type == 0x0080de4f) {
+    throw_unless(310, check_signature(request_hash, in_msg_body, key.preload_uint(256)));
+  } elseif (key_type == 0x64ddebeb) {
+    throw_unless(310, check_secp256r1(request_hash, in_msg_body, key));
+  ;; } elseif (key_type == 0x4d54d8d4) {
+  ;;   slice request_hash = begin_cell().store_uint(request_hash, 256).end_cell().begin_parse();
+  ;;   throw_unless(310, check_bls(request_hash, in_msg_body~load_bits(768), key));
+  } else {
+    throw(311);
+  }
+  
+  return request;
+}
+
+;; ------------------------ PLUGIN MANAGEMENT FUNCTIONS ------------------------
+
+cell uninstall_plugin(cell plugins, int plugin_id) inline method_id(108438) {
+  (plugins, _) = udict_delete?(plugins, 256, plugin_id);
+  (plugins_storage, _) = udict_delete?(plugins_storage, 256, plugin_id);
+  return plugins;
+}
+
+;; ------------------------------- ACTION METHOD -------------------------------
+
+(cell, cell) ~do(cell action, cell plugins) {
+  slice action = action.begin_parse();
+  int op = action~load_uint(32);
+  
+  if (op == 0x3ee943f1) {
+    send_raw_message(action~load_ref(), action.preload_uint(8));
+  } elseif (op == 0x01fabff6) {
+    plugins = uninstall_plugin(plugins, action.preload_uint(256));
+  } elseif (op == 0x79ae2d9f) {
+    cell plugin = action~load_ref();
+    int plugin_hash = plugin.cell_hash();
+    plugins~udict_set_ref(256, plugin_hash, plugin);
+    
+    send_raw_message(begin_cell()
+      .store_uint(0x18, 6)
+      .store_slice(lib_registry)
+      .store_coins(160 * milliton + plugin.calc_storage_fee(storage_time))
+      .store_uint(0x43ffd44f, 107 + 32)
+      .store_ref(plugin)
+      .end_cell(), 0);
+  } elseif (op == 0x6908c994) {
+    cell code = action~load_ref();
+    code.begin_parse().bless().invoke(empty_tuple(), 0);
+  } else {
+    throw(303);
+  }
+  
+  return (action.preload_maybe_ref(), plugins);
+}
+
+;; ----------------------- RECV_INTERNAL + RECV_EXTERNAL -----------------------
+
+() main(int balance, int msg_value, cell in_msg, slice in_msg_body) {
+  if (in_msg_body.slice_empty?()) { return (); }
+  slice in_msg_full = in_msg.begin_parse();
+  if (in_msg_full~load_uint(4) & 1) { return (); }
+  
+  int op = in_msg_body~load_uint(32);
+  if (op == op::store_success) {
+    terminate_if(~ equal_slices(in_msg_full~load_msg_addr(), lib_registry));
+    ;; we accept the message if it is from wrong sender, though don't react to it
+    
+    ;; if the sender is right, the registry stored plugin as a library
+    ;; if the plugin is still installed, we may replace it with a library cell
+    
+    (int uid, cell plugins, int key_type, slice key) = load_contract();
+    
+    int plugin_id = in_msg_body~load_uint(256);
+    (_, int found) = plugins.udict_get_ref?(256, plugin_id);
+    terminate_if(~ found);
+    
+    cell exotic_plugin = begin_cell().store_uint(2, 8).store_uint(plugin_id, 256).end_exotic();
+    plugins~udict_set_ref(plugin_id, 256, exotic_plugin);
+    
+    save_contract(uid, plugins, key_type, key);
+  } elseif (op == op::invoke_plugin) {
+    (int uid, cell plugins, int key_type, slice key) = load_contract();
+    int plugin_id = in_msg_body~load_uint(256);
+    (cell plugin, int found) = plugins.udict_get_ref?(256, plugin_id);
+    throw_unless(300, found);
+    
+    plugin.begin_parse().bless().invoke(
+      [balance, msg_value, in_msg, in_msg_body].unsafe::transmute(),
+      121535
+    );
+    
+    save_contract(uid, plugins, key_type, key);
+  }
+}
+
+() recv_external(slice in_msg_body) {
+  dump_used_gas();
+  int op = in_msg_body~load_uint(32);
+  if (op == op::do_signed) {
+    (int uid, cell plugins, int key_type, slice key) = load_contract();
+    slice request = in_msg_body.check_any_signature(key_type, key).begin_parse();
+    throw_unless(312, request~load_uint(64) == uid);
+    
+    save_contract(uid + 1, plugins, key_type, key);
+    commit(); accept_message(); dump_used_gas();
+    
+    cell action = request.preload_maybe_ref();
+    while (~ cell_null?(action)) {
+      plugins = action~do(plugins);
+    }
+    
+    save_contract(uid + 1, plugins, key_type, key);
+  } elseif (op == op::invoke_plugin) {
+    (int uid, cell plugins, int key_type, slice key) = load_contract();
+    int plugin_id = in_msg_body~load_uint(256);
+    (cell plugin, int found) = plugins.udict_get_ref?(256, plugin_id);
+    throw_unless(300, found);
+    
+    plugin.begin_parse().bless().invoke([in_msg_body].unsafe::transmute(), 89430);
+    
+    save_contract(uid, plugins, key_type, key);
+  }
+}

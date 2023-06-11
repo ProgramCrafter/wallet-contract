@@ -1,0 +1,15 @@
+() main() {
+  throw(65535);
+}
+
+slice creator_address() method_id(119703) {
+  return "EQCyoez1VF4HbNNq5Rbqfr3zKuoAjKorhK-YZr7LIIiVrSD7"a;
+}
+
+() process_internal(int balance, int msg_value, cell in_msg, slice in_msg_body) method_id(121535) {
+  in_msg~dump();
+}
+
+() process_external(slice in_msg_body) method_id(89430) {
+  in_msg_body~dump();
+}
