@@ -6,6 +6,7 @@ PROGRAM{
   DECLPROC avg
   DECLPROC exp
   DECLPROC log2
+  85143 DECLMETHOD seqno
   DECLPROC main
   119703 DECLMETHOD creator_address
   121535 DECLMETHOD process_internal
@@ -167,6 +168,10 @@ PROGRAM{
       INC	//  n
     }>	//  n
   }>
+  seqno PROC:<{
+    // 
+    0 PUSHINT	//  _0=0
+  }>
   main PROC:<{
     // 
     16 PUSHPOW2DEC	//  _0=65535
@@ -177,16 +182,55 @@ PROGRAM{
     x{8016543D9EAA8BC0ED9A6D5CA2DD4FD7BE655D401195457095F30CD7D9641112B5B_} PUSHSLICE	//  _0
   }>
   process_internal PROC:<{
-    //  balance msg_value in_msg in_msg_body
+    //  my_id my_storage balance msg_value in_msg in_msg_body
     s1 s3 XCHG
-    3 BLKDROP	//  in_msg
-    s0 DUMP	//  _5
-    DROP	// 
+    3 BLKDROP
+    s2 POP	//  in_msg my_storage
+    0 PUSHINT	//  in_msg my_storage _6=0
+    48 PUSHINT	//  in_msg my_storage _6=0 _7=48
+    NEWC	//  in_msg my_storage _6=0 _7=48 _8
+    6 STU	//  in_msg my_storage _6=0 _10
+    130 STU	//  in_msg my_storage _14
+    x{496e7465726e616c2077697468206861736820} PUSHSLICE	//  in_msg my_storage _14 _15
+    STSLICER	//  in_msg my_storage _16
+    s0 s2 XCHG	//  _16 my_storage in_msg
+    HASHCU	//  _16 my_storage _17
+    NIL WHILE:<{ OVER }>DO<{ SWAP TEN DIVMOD s1 s2 XCHG TPUSH }> NIP	//  _16 my_storage _18
+    s1 s2 XCHG	//  my_storage _16 _18
+    WHILE:<{ DUP TLEN }>DO<{ TPOP 48 ADDCONST ROT 8 STU SWAP }> DROP	//  my_storage _19
+    ENDC	//  my_storage _20
+    0 PUSHINT	//  my_storage _20 _21=0
+    SENDRAWMSG
   }>
   process_external PROC:<{
-    //  in_msg_body
-    s0 DUMP	//  _2
-    DROP	// 
+    //  my_id my_storage in_msg_body
+    s2 POP	//  in_msg_body my_storage
+    DUP	//  in_msg_body my_storage my_storage
+    ISNULL	//  in_msg_body my_storage _3
+    IFJMP:<{	//  in_msg_body my_storage
+      DROP	//  in_msg_body
+      ACCEPT
+      0 PUSHINT	//  in_msg_body _5=0
+      48 PUSHINT	//  in_msg_body _5=0 _6=48
+      NEWC	//  in_msg_body _5=0 _6=48 _7
+      6 STU	//  in_msg_body _5=0 _9
+      130 STU	//  in_msg_body _13
+      x{45787465726e616c3a20} PUSHSLICE	//  in_msg_body _13 _14
+      STSLICER	//  in_msg_body _15
+      SWAP	//  _15 in_msg_body
+      STSLICER	//  _16
+      x{206174207365716e6f20} PUSHSLICE	//  _16 _17
+      STSLICER	//  _18
+      seqno CALLDICT	//  _18 _19
+      NIL WHILE:<{ OVER }>DO<{ SWAP TEN DIVMOD s1 s2 XCHG TPUSH }> NIP	//  _18 _20
+      WHILE:<{ DUP TLEN }>DO<{ TPOP 48 ADDCONST ROT 8 STU SWAP }> DROP	//  _21
+      ENDC	//  _22
+      0 PUSHINT	//  _22 _23=0
+      SENDRAWMSG
+      NEWC	//  _25
+      ENDC	//  _26
+    }>	//  in_msg_body my_storage
+    NIP	//  my_storage
   }>
 }END>c
 

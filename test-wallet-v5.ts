@@ -1,7 +1,7 @@
 import { Blockchain } from "@ton-community/sandbox";
 import { SendMode, toNano } from "ton-core";
 import { randomTestKey } from "ton/dist/utils/randomTestKey";
-import { makeSender, WalletContractV5R1 } from "./wallet-v5";
+import { makeSender, WalletContractV5R2 } from "./wallet-v5";
 
 
 function expect(a: any) {
@@ -18,7 +18,7 @@ function expect(a: any) {
     const deployer = await blockchain.treasury('deployer');
     let key = randomTestKey('v5r1-treasure');
 
-    let contract = blockchain.openContract(WalletContractV5R1.create({ workchain: 0, publicKey: key.publicKey }));
+    let contract = blockchain.openContract(WalletContractV5R2.create({ workchain: 0, publicKey: key.publicKey }));
     let balance = await contract.getBalance();
     expect(contract.address.toString()).toBe('EQCYcccF6VVg72UeDXeinJ7Xt_tErqinE53K-W-ynuhTFvyz');
     expect(balance).toBe(0n);

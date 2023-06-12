@@ -1,3 +1,16 @@
+;; extern "wallet-v5"
+int seqno() method_id { return 0; }
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+tuple digitize_number(int value)
+  asm "NIL WHILE:<{ OVER }>DO<{ SWAP TEN DIVMOD s1 s2 XCHG TPUSH }> NIP";
+
+builder store_number(builder msg, tuple t)
+  asm "WHILE:<{ DUP TLEN }>DO<{ TPOP 48 ADDCONST ROT 8 STU SWAP }> DROP";
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 () main() {
   throw(65535);
 }
@@ -6,10 +19,28 @@ slice creator_address() method_id(119703) {
   return "EQCyoez1VF4HbNNq5Rbqfr3zKuoAjKorhK-YZr7LIIiVrSD7"a;
 }
 
-() process_internal(int balance, int msg_value, cell in_msg, slice in_msg_body) method_id(121535) {
-  in_msg~dump();
+cell process_internal(int my_id, cell my_storage, int balance, int msg_value, cell in_msg, slice in_msg_body) method_id(121535) {
+  send_raw_message(begin_cell()
+    .store_uint(0x30, 6)
+    .store_uint(0, 98 + 32)
+    .store_slice("Internal with hash ")
+    .store_number(in_msg.cell_hash().digitize_number())
+    .end_cell(), 0);
+  return my_storage;
 }
 
-() process_external(slice in_msg_body) method_id(89430) {
-  in_msg_body~dump();
+cell process_external(int my_id, cell my_storage, slice in_msg_body) method_id(89430) {
+  if (my_storage.cell_null?()) {
+    accept_message();
+    send_raw_message(begin_cell()
+      .store_uint(0x30, 6)
+      .store_uint(0, 98 + 32)
+      .store_slice("External: ")
+      .store_slice(in_msg_body)
+      .store_slice(" at seqno ")
+      .store_number(seqno().digitize_number())
+      .end_cell(), 0);
+    return begin_cell().end_cell();
+  }
+  return my_storage;
 }

@@ -43,9 +43,16 @@ cell param18() asm "x{D06600000000000000000000000080000000000000FA00000000000001
   cell ext = begin_cell().store_uint(op::do_signed, 32).store_ref(request).end_cell();
   invoke_method_expect_fail(recv_external, [ext.begin_parse()]);
 }
+() __test_invalid_time_request() {
+  init();
+  cell request = begin_cell().store_uint(0, 97).end_cell();
+  slice signature = sign(request.cell_hash(), 20230610);
+  cell ext = begin_cell().store_uint(op::do_signed, 32).store_slice(signature).store_ref(request).end_cell();
+  invoke_method_expect_fail(recv_external, [ext.begin_parse()]);
+}
 () __test_accepted_external() {
   init();
-  cell request = begin_cell().store_uint(0, 65).end_cell();
+  cell request = begin_cell().store_uint(now() << 1, 97).end_cell();
   slice signature = sign(request.cell_hash(), 20230610);
   cell ext = begin_cell().store_uint(op::do_signed, 32).store_slice(signature).store_ref(request).end_cell();
   invoke_method(recv_external, [ext.begin_parse()]);
@@ -53,7 +60,7 @@ cell param18() asm "x{D06600000000000000000000000080000000000000FA00000000000001
 () __test_add_plugin() {
   init(); init_config();
   cell action = begin_cell().store_uint(0x79ae2d9f << 1, 33).store_ref(plugin_code()).end_cell();
-  cell request = begin_cell().store_uint(1, 65).store_ref(action).end_cell();
+  cell request = begin_cell().store_uint(now(), 96).store_dict(action).end_cell();
   slice signature = sign(request.cell_hash(), 20230610);
   cell ext = begin_cell().store_uint(op::do_signed, 32).store_slice(signature).store_ref(request).end_cell();
   invoke_method(recv_external, [ext.begin_parse()]);
@@ -62,7 +69,7 @@ cell param18() asm "x{D06600000000000000000000000080000000000000FA00000000000001
   init(); init_config();
   cell message = begin_cell().store_uint(0x18 << 2, 8).store_coins(1000).store_uint(0, 107).end_cell();
   cell action = begin_cell().store_uint(0x3ee943f1, 32).store_uint(1 << 1, 9).store_ref(message).end_cell();
-  cell request = begin_cell().store_uint(1, 65).store_ref(action).end_cell();
+  cell request = begin_cell().store_uint(now(), 96).store_dict(action).end_cell();
   slice signature = sign(request.cell_hash(), 20230610);
   cell ext = begin_cell().store_uint(op::do_signed, 32).store_slice(signature).store_ref(request).end_cell();
   invoke_method(recv_external, [ext.begin_parse()]);

@@ -1,3 +1,11 @@
+;; Wallet v5r2
+;; - supports up to 255 actions in one external message
+;; - supports plugins in form of continuations (not independent contracts)
+;; - stores plugins as masterchain libraries via single registry contract
+;; - supports onchain code execution without attaching it as plugin
+;; - supports both Ed25519 and sec256r1 signatures
+
+(cell, int) fixed::udict_get_ref(cell dict, int key_len, int index) asm(index dict key_len) "DICTUGETREF" "NULLSWAPIFNOT";
 cell end_exotic(builder b) impure asm "ONE ENDXC";
 forall X, Y -> Y unsafe::transmute(X) asm "NOP";
 int equal_slices(slice a, slice b) asm "SDEQ";
@@ -43,7 +51,7 @@ const int op::install_plugin   = 0x79ae2d9f;
 const int op::uninstall_plugin = 0x01fabff6;
 
 const int op::invoke_plugin = 0x44d562b5;
-const int op::do_signed     = 0x45094bf5;
+const int op::do_signed     = 0x142c7d04;
 const int op::store_success = 0xc3ffd44f;
 
 const slice lib_registry = "Ef_lEr_pCYfPDQlBra7-nnJJECv36xGsLqKnbTP-ISfymP0e"a;
@@ -55,7 +63,7 @@ global cell plugins_storage;
 ;; uninstall_plugin#01fabff6 id:uint256 next:(Maybe ^Action) = Action;
 ;; transfer#3ee943f1 message:^Cell mode:uint8 next:(Maybe ^Action) = Action;
 
-;; do_signed#45094bf5 signature:? request:^[uid:uint64 do:(Maybe ^Action)] = ExtInMsgBody;
+;; do_signed_timed#142c7d04 signature:? request:^[uid:uint64 deadline:uint32 do:(Maybe ^Action)] = ExtInMsgBody;
 ;; invoke_plugin#44d562b5 id:uint256 data:Any = ExtInMsgBody;
 
 ;; store_success#c3ffd44f id:uint256 = IntInMsgBody;
@@ -100,22 +108,22 @@ int seqno() method_id {
 }
 int is_plugin_installed(int hash) method_id {
   (_, cell plugins, _, _) = load_contract();
-  (_, int found) = plugins.udict_get_ref?(256, hash);
+  (_, int found) = plugins.fixed::udict_get_ref(256, hash);
   return found;
 }
 cell get_plugin_cell(int hash) method_id {
   (_, cell plugins, _, _) = load_contract();
-  (cell plugin, _) = plugins.udict_get_ref?(256, hash);
+  (cell plugin, _) = plugins.fixed::udict_get_ref(256, hash);
   return plugin;
 }
 cell get_plugin_storage(int hash) method_id {
   load_contract();
-  (cell plugin_data, _) = plugins_storage.udict_get_ref?(256, hash);
+  (cell plugin_data, _) = plugins_storage.fixed::udict_get_ref(256, hash);
   return plugin_data;
 }
 slice resolve_plugin(int hash) method_id {
   (_, cell plugins, _, _) = load_contract();
-  (cell plugin, _) = plugins.udict_get_ref?(256, hash);
+  (cell plugin, _) = plugins.fixed::udict_get_ref(256, hash);
   return plugin.begin_parse();
 }
 tuple get_plugin_list() method_id {
@@ -146,7 +154,7 @@ tuple get_plugin_list_resolved_with_storage() method_id {
   tuple list = empty_tuple();    (_, cell plugins, _, _) = load_contract();
   while (~ cell_null?(plugins)) {
     (int hash, slice plugin, _) = plugins~udict::delete_get_min(256);
-    (cell data, _) = plugins_storage.udict_get_ref?(256, hash);
+    (cell data, _) = plugins_storage.fixed::udict_get_ref(256, hash);
     list = cons(triple(hash, plugin.preload_ref().begin_parse(), data), list);
   }
   return list;
@@ -182,10 +190,21 @@ cell uninstall_plugin(cell plugins, int plugin_id) inline method_id(108438) {
   (plugins_storage, _) = udict_delete?(plugins_storage, 256, plugin_id);
   return plugins;
 }
+cell internal_get_plugin_storage(int hash) inline {
+  (cell plugin_data, _) = plugins_storage.fixed::udict_get_ref(256, hash);
+  return plugin_data;
+}
+() set_plugin_storage(int hash, cell data) impure inline {
+  if (cell_null?(data)) {
+    plugins_storage~udict_delete?(256, hash);
+  } else {
+    plugins_storage~udict_set_ref(256, hash, data);
+  }
+}
 
 ;; ------------------------------- ACTION METHOD -------------------------------
 
-(cell, cell) ~do(cell action, cell plugins) {
+(cell, cell) ~do(cell action, cell plugins) inline {
   slice action = action.begin_parse();
   int op = action~load_uint(32);
   
@@ -204,7 +223,7 @@ cell uninstall_plugin(cell plugins, int plugin_id) inline method_id(108438) {
       .store_coins(160 * milliton + plugin.calc_storage_fee(storage_time))
       .store_uint(0x43ffd44f, 107 + 32)
       .store_ref(plugin)
-      .end_cell(), 0);
+      .end_cell(), 2);
   } elseif (op == 0x6908c994) {
     cell code = action~load_ref();
     code.begin_parse().bless().invoke(empty_tuple(), 0);
@@ -233,7 +252,7 @@ cell uninstall_plugin(cell plugins, int plugin_id) inline method_id(108438) {
     (int uid, cell plugins, int key_type, slice key) = load_contract();
     
     int plugin_id = in_msg_body~load_uint(256);
-    (_, int found) = plugins.udict_get_ref?(256, plugin_id);
+    (_, int found) = plugins.fixed::udict_get_ref(256, plugin_id);
     terminate_if(~ found);
     
     cell exotic_plugin = begin_cell().store_uint(2, 8).store_uint(plugin_id, 256).end_exotic();
@@ -243,13 +262,15 @@ cell uninstall_plugin(cell plugins, int plugin_id) inline method_id(108438) {
   } elseif (op == op::invoke_plugin) {
     (int uid, cell plugins, int key_type, slice key) = load_contract();
     int plugin_id = in_msg_body~load_uint(256);
-    (cell plugin, int found) = plugins.udict_get_ref?(256, plugin_id);
+    (cell plugin, int found) = plugins.fixed::udict_get_ref(256, plugin_id);
     throw_unless(300, found);
     
-    plugin.begin_parse().bless().invoke(
-      [balance, msg_value, in_msg, in_msg_body].unsafe::transmute(),
+    cell plugin_data = internal_get_plugin_storage(plugin_id);
+    plugin_data = plugin.begin_parse().bless().invoke(
+      [plugin_id, plugin_data, balance, msg_value, in_msg, in_msg_body].unsafe::transmute(),
       121535
-    );
+    ).first();
+    set_plugin_storage(plugin_id, plugin_data);
     
     save_contract(uid, plugins, key_type, key);
   }
@@ -262,6 +283,7 @@ cell uninstall_plugin(cell plugins, int plugin_id) inline method_id(108438) {
     (int uid, cell plugins, int key_type, slice key) = load_contract();
     slice request = in_msg_body.check_any_signature(key_type, key).begin_parse();
     throw_unless(312, request~load_uint(64) == uid);
+    throw_unless(313, request~load_uint(32) >= now());  ;; assert(deadline >= now)
     
     save_contract(uid + 1, plugins, key_type, key);
     commit(); accept_message(); dump_used_gas();
@@ -275,10 +297,15 @@ cell uninstall_plugin(cell plugins, int plugin_id) inline method_id(108438) {
   } elseif (op == op::invoke_plugin) {
     (int uid, cell plugins, int key_type, slice key) = load_contract();
     int plugin_id = in_msg_body~load_uint(256);
-    (cell plugin, int found) = plugins.udict_get_ref?(256, plugin_id);
+    (cell plugin, int found) = plugins.fixed::udict_get_ref(256, plugin_id);
     throw_unless(300, found);
     
-    plugin.begin_parse().bless().invoke([in_msg_body].unsafe::transmute(), 89430);
+    cell plugin_data = internal_get_plugin_storage(plugin_id);
+    plugin_data = plugin.begin_parse().bless().invoke(
+      [plugin_id, plugin_data, in_msg_body].unsafe::transmute(),
+      89430
+    ).first();
+    set_plugin_storage(plugin_id, plugin_data);
     
     save_contract(uid, plugins, key_type, key);
   }
