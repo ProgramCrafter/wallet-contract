@@ -1,5 +1,5 @@
 import { SandboxContract } from "@ton-community/sandbox";
-import { Address, beginCell, Cell, Contract, contractAddress, ContractProvider, internal, MessageRelaxed, Sender, SenderArguments, SendMode, storeMessageRelaxed, toNano } from "ton-core";
+import { Address, beginCell, Builder, Cell, Contract, contractAddress, ContractProvider, internal, MessageRelaxed, Sender, SenderArguments, SendMode, Slice, storeMessageRelaxed, toNano } from "ton-core";
 import { sign } from "ton-crypto";
 
 export type Transfer = {action: 'transfer', message: MessageRelaxed, sendMode: SendMode};
@@ -29,7 +29,9 @@ export class WalletContractV5R2 implements Contract {
             this.walletId = 698983191 + workchain;
         }
 
-        let code = Cell.fromBase64('te6ccgECIwEABS8AART/APSkE/S88sgLAQIBIAIDAgFIBAUCNvLTHyGCEBQsfQS6jowBghBE1WK1upEw4w3jDRwdAl7QIMcAkl8E4CHQ0wMBcbCSXwXgAdMfIYIQw//UT7qOjTKCEETVYrW6kl8E4w3jDQYHAgEgCAkA/u1E0NM/9AT0BAH4YdMfBNP/UxODB/QP8uEsIvhBgwf0DzAB0O0eI0QVEDtKm28GFIIB2r9vjGilpfh+gQD/b4QgpGEBf9s4aPheoW+AbxAUIG6aMPhBgwf0WzD4YZn4QRKDB/QX+GHiQTD4QQTIyz8T9AAT9AASyx8BzxbJ7VQA6jFsIjL6QDCNCGf/KJX/SEw+eGhKDW139POSSIFfv1iNYXUVO2mf8Qk/lMTHBbPjCO1E0NM/9AT0BAH4YdMfBNP/MFMCgwf0DzGz4whyyMsHUhDL/3HPIwKDB1BC9BdAE/hBBMjLPxP0ABP0ABLLHwHPFsntVAIBIAoLAgEgEhMCASAMDQAluMl+1E0NM/9AT0BAH4YdMfXwOAIBIA4PAgEgEBEAX7DFm8A7UTQ0z/0BPQEAfhh0x8QI18DkyBus44Rgwf0lm+lMAHXTNBvAlhvAgHoMIABzsmlbwDtRNDTP/QE9AQB+GHTHxAjXwOTIG6zjhuDB/SWb6Uw+EFSEIMH9A8wAtdM0FhvA1hvAgHoMIAAzsp37UTQ0z/0BPQEAfhh0x8QI18Dgwf0DzGAAJbDnO1E0NM/9AT0BAH4YdMfMzGACASAUFQIBIBobADO0r92omhpn/oCegIA/DDpj4gRr4HBg/oHmEAICcRYXAFGlCt4B2omhpn/oCegIA/DDpj4gRr4HJkDdZzkGD+ks30pgYrDeBAPQYQIBIBgZADOi47UTQ0z/0BPQEAfhh0x8QI18Dgwf0DzDQgAlollICgwf0WzD4QRKDB/RbMPhhgAztM09qJoaZ/6AnoCAPww6Y+vgnwgwYP6B5hAAXbYIDeAdqJoaZ/6AnoCAPww6Y+IEa+ByZA3WccIQYP6SzfSmADrpjeBLDeBAPQYQAPLtRNDTP/QE9AQB+GHTHwTT/1MTgwf0D/LhLCL4QYMH9A8wAdDtHlRDA28DggFdVm+MaKWl+H6BAP9vhCCkYQF/2zho+F6hb4BvECBumjD4QYMH9Fsw+GGZ+EESgwf0F/hh4lUC+EEEyMs/E/QAE/QAEssfAc8Wye1UAv4x7UTQ0z/0BPQEAfhh0x9UNBQC1CH5ACOCCIDeT7qbMwPXC/8T+RDy4TaOGAOCEGTd6+u6l1AD+RTy4TaWE18D8sE34uLQ0z9RFLry4TjTHwH4I77y4TkjpFRzJfhBBMjLPxP0ABP0ABLLHwHPFsntVPgP+AD0BZMgbrOK6DACHh8BCFjbPFkgADCkUCP4QQTIyz8T9AAT9AASyx8BzxbJ7VQC9gHQ0x8hghA+6UPxupkx1CDXCwcS+wCO4iGCCfq/9rqOFzEg1wv/ElICgwf0WzD4QRKDB/RbMPhhjr4hghB5ri2fuo4yAYIQaQjJlLqOItQB0O0ebwBwb4xopaX4foEA/2+EIKRhAX/bOGj4XqFvgDCT8sEv4gHjDeIB4iEiAPwx1CH5AFRCFIMH9BeCEEP/1E+AGMjLBY0IZ/8olf9ITD54aEoNbXf085JIgV+/WI1hdRU7aZ/xCT+UxM8WghAJiWgAJIIJ4TOAAYIBhqD5QTBYcIAS+DOAIPQMb6EwgQCo1yHTPwOoAtM/MFADqKABqKsPoPoCy4oSzMly+wAABvQFAQ==');
+        let code = Cell.fromBase64(
+            'te6ccgECJAEABUUAART/APSkE/S88sgLAQIBIAIDAgFIBAUCNvLTHyGCEBQsfQS6jowBghBE1WK1upEw4w3jDR0eAkDQIMcAkl8E4CHQ0wMBcbCSXwXgAdMfIYIQw//UT7rjDwYHAgEgCQoA7jFsIjL6QDCNCGf/KJX/SEw+eGhKDW139POSSIFfv1iNYXUVO2mf8Qk/lMTHBbPjCO1E0NM/9AT0BAH4YdMfBNP/MFMCgwf0D2+hMbPjCHLIywdSEMv/cc8jAoMHUEL0F0AT+EEEyMs/E/QAE/QAEssfAc8Wye1UAfgyghBE1WK1uo7u7UTQ0z/0BPQEAfhh0x8E0/9TE4MH9A9vofLhLCL4QYMH9A9voTAB0O0eI0QVEDtKm28GFIIB2r9vjGilpfh+gQD/b4QgpGEBf9s4aPheoW+AbxAUIG6aMPhBgwf0WzD4YZn4QRKDB/QX+GHiQTCSXwTiCAAq+EEEyMs/E/QAE/QAEssfAc8Wye1UAgEgCwwCASATFAIBIA0OACW4yX7UTQ0z/0BPQEAfhh0x9fA4AgEgDxACASAREgBfsMWbwDtRNDTP/QE9AQB+GHTHxAjXwOTIG6zjhGDB/SWb6UwAddM0G8CWG8CAegwgAHeyaVvAO1E0NM/9AT0BAH4YdMfECNfA5MgbrOOHYMH9JZvpTD4QVIQgwf0D2+hMALXTNBYbwNYbwIB6DCAAN7Kd+1E0NM/9AT0BAH4YdMfECNfA4MH9A9voTGAAJbDnO1E0NM/9AT0BAH4YdMfMzGACASAVFgIBIBscADe0r92omhpn/oCegIA/DDpj4gRr4HBg/oHt9CYQAgJxFxgAUaUK3gHaiaGmf+gJ6AgD8MOmPiBGvgcmQN1nOQYP6SzfSmBisN4EA9BhAgEgGRoAN6LjtRNDTP/QE9AQB+GHTHxAjXwODB/QPb6Ew0IAJaJZSAoMH9Fsw+EESgwf0WzD4YYAN7TNPaiaGmf+gJ6AgD8MOmPr4J8IMGD+ge30JhAAXbYIDeAdqJoaZ/6AnoCAPww6Y+IEa+ByZA3WccIQYP6SzfSmADrpjeBLDeBAPQYQAPrtRNDTP/QE9AQB+GHTHwTT/1MTgwf0D2+h8uEsIvhBgwf0D2+hMAHQ7R5UQwNvA4IBXVZvjGilpfh+gQD/b4QgpGEBf9s4aPheoW+AbxAgbpow+EGDB/RbMPhhmfhBEoMH9Bf4YeJVAvhBBMjLPxP0ABP0ABLLHwHPFsntVAL+Me1E0NM/9AT0BAH4YdMfVDQUAtQh+QAjggiA3k+6mzMD1wv/E/kQ8uE2jhgDghBk3evrupdQA/kU8uE2lhNfA/LBN+Li0NM/URS68uE40x8B+CO+8uE5I6RUcyX4QQTIyz8T9AAT9AASyx8BzxbJ7VT4D/gA9AWTIG6ziugwAh8gAQhY2zxZIQAwpFAj+EEEyMs/E/QAE/QAEssfAc8Wye1UAvYB0NMfIYIQPulD8bqZMdQg1wsHEvsAjuIhggn6v/a6jhcxINcL/xJSAoMH9Fsw+EESgwf0WzD4YY6+IYIQea4tn7qOMgGCEGkIyZS6jiLUAdDtHm8AcG+MaKWl+H6BAP9vhCCkYQF/2zho+F6hb4Awk/LBL+IB4w3iAeIiIwD8MdQh+QBUQhSDB/QXghBD/9RPgBjIywWNCGf/KJX/SEw+eGhKDW139POSSIFfv1iNYXUVO2mf8Qk/lMTPFoIQCYloACSCCeEzgAGCAYag+UEwWHCAEvgzgCD0DG+hMIEAqNch0z8DqALTPzBQA6igAairD6D6AsuKEszJcvsAAAb0BQE='
+        );
         
         let data = beginCell()
             .storeUint(this.walletId, 32)   // subwallet_id  -\ uid
@@ -59,6 +61,19 @@ export class WalletContractV5R2 implements Contract {
     
     async getSeqno(provider: ContractProvider): Promise<bigint> {
         return this._nowrapGetSeqno(provider);
+    }
+
+    async getIsPluginInstalled(provider: ContractProvider, id: Buffer): Promise<boolean> {
+        let state = await provider.getState();
+        if (state.state.type === 'active') {
+            let cell_id = beginCell().storeBuffer(id, 32).endCell();
+            let num_id = cell_id.beginParse().loadUintBig(256);
+
+            let res = await provider.get('is_plugin_installed', [{type: 'int', value: num_id}]);
+            return res.stack.readBoolean();
+        } else {
+            return false;
+        }
     }
     
     async sendExternal(provider: ContractProvider, message: Cell) {
@@ -180,6 +195,11 @@ export class WalletContractV5R2 implements Contract {
             bounce: false,
             sendMode: SendMode.PAY_GAS_SEPARATELY
         });
+    }
+
+    async sendInvokePlugin(provider: ContractProvider, id: Buffer, data: Builder) {
+        const body = beginCell().storeUint(0x44d562b5, 32).storeBuffer(id, 32).storeBuilder(data).endCell();
+        await this.sendExternal(provider, body);
     }
 }
 
