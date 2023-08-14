@@ -1,6 +1,13 @@
 ;; extern "wallet-v5"
 int seqno() method_id { return 0; }
 
+;; extern "wallet-v5"
+;; @returns
+;;   - (ECDSA     256-bit public key, 0x0080de4f)
+;;   - (secp256r1 264-bit public key, 0x64ddebeb)
+;;   - (BLS       384-bit public key, 0x4d54d8d4)  not supported because of cost
+(slice, int) get_public_key() method_id { return (null(), -2); }
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 tuple digitize_number(int value)

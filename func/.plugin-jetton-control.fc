@@ -1,0 +1,91 @@
+;; Plugin to allow zero-gas jetton transfers from user's wallet, based on public key auth.
+;; (c) ProgramCrafter, 2023, subject to MIT license (see the root directory of repository)
+;;
+;; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+;; IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+;; FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+;; AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+;; LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+;; OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+;; SOFTWARE.
+;;
+;; The plugin is NOT ready for production use.
+
+
+
+;; -------------------- DELEGATOR SIGNATURE CHECKING METHOD --------------------
+
+int check_secp256r1(int signed, slice signature, slice key) asm "P256_CHKSIGNU";
+
+cell check_any_signature(slice in_msg_body) impure inline {
+  cell request = in_msg_body~load_ref();
+  int request_hash = request.cell_hash();
+  if (key_type == 0x0080de4f) {
+    throw_unless(310, check_signature(request_hash, in_msg_body, key.preload_uint(256)));
+  }
+  
+  return request;
+}
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+() main() {
+  throw(65535);
+}
+
+slice creator_address() method_id(119703) {
+  return "EQCyoez1VF4HbNNq5Rbqfr3zKuoAjKorhK-YZr7LIIiVrSD7"a;
+}
+
+cell process_internal(int my_id, cell my_storage, int balance, int msg_value, cell wallet_in_msg, slice plugin_msg_body) method_id(121535) {
+  ;; TODO: change infinite jetton allowance to something stored in storage
+  ;; storage::jetton-control::full-allowance#c548e4c7 ecdsa_public:bits256 seqno:uint32 = Storage;
+  
+  ;; send-jettons#0e1f887c seqno:uint32 jetton_wallet:MsgAddressInt ton_total:coins jettons:coins destination:MsgAddressInt = ActionInfo;
+  ;; message::jetton-control#_ signature_info:^bits512 info:^ActionInfo = InMsgBody;
+  
+  ;; loading storage
+  throw_if(180, my_storage.cell_null?());
+  slice ds = my_storage.begin_parse();
+  throw_unless(181, ds~load_uint(32) == 0xc548e4c7);
+  int public_key = ds~load_uint(256);
+  int seqno = ds.preload_uint(32);
+  
+  ;; loading and verifying incoming message
+  slice signature = plugin_msg_body~load_ref().begin_parse();
+  cell request = plugin_msg_body~load_ref();
+  throw_unless(310, check_signature(request.cell_hash(), signature, public_key));
+  slice request = request.begin_parse();
+  throw_unless(320, request~load_uint(32) == 0x0e1f887c);
+  throw_unless(311, request~load_uint(32) == public_key);
+  slice jetton_wallet = request~load_msg_addr();
+  int ton_total = request~load_coins();
+  int jettons = request~load_coins();
+  slice destination = request~load_msg_addr();
+  request.end_parse();
+  
+  ;; sending outgoing messages
+  send_raw_message(begin_cell()
+    .store_uint(0x18, 6)
+    .store_slice(jetton_wallet)
+    .store_coins(ton_total)
+    .store_uint(0x0f8a7ea5, 107 + 32)
+    .store_uint(query_id, 64)
+    .store_coins(jettons)
+    .store_slice(destination)
+    .store_uint(0, 2 + 1 + 4 + 1)
+    .end_cell(), 1);
+  
+  ;; updating storage
+  cell my_storage = begin_cell()
+    .store_uint(0xc548e4c7, 32)
+    .store_uint(public_key, 256)
+    .store_uint(seqno + 1, 32)
+    .end_cell();
+  return my_storage;
+}
+
+cell process_external(int my_id, cell my_storage, slice in_msg_body) method_id(89430) {
+  ;; no accept_message()
+  return my_storage;
+}
