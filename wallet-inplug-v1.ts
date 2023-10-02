@@ -8,7 +8,7 @@ export type InstallPlugin = {action: 'install', code: Cell};
 export type InvokeCode = {action: 'invoke', code: Cell};
 export type Action = InstallPlugin | InvokeCode | Transfer | UninstallPlugin;
 
-export class WalletContractV5R2 implements Contract {
+export class WalletInplugV1 implements Contract {
     readonly workchain: number;
     readonly publicKey: Buffer;
     readonly address: Address;
@@ -160,6 +160,19 @@ export class WalletContractV5R2 implements Contract {
         return this.signMultiAction({seqno, actions, secretKey});
     }
 
+    async sendExecuteCode(provider: ContractProvider, args: {
+        seqno?: bigint,
+        secretKey: Buffer,
+        code: Cell
+    }): Promise<void> {
+        let transfer = this.signMultiAction({
+            seqno: args.seqno ?? await this._nowrapGetSeqno(provider),
+            secretKey: args.secretKey,
+            actions: [{action: 'invoke', code: args.code}]
+        })
+        await this.sendExternal(provider, transfer);
+    }
+
     async sendInstallPlugin(provider: ContractProvider, args: {
         seqno?: bigint,
         secretKey: Buffer,
@@ -203,7 +216,7 @@ export class WalletContractV5R2 implements Contract {
     }
 }
 
-export function makeSender(contract: SandboxContract<WalletContractV5R2>, secretKey: Buffer) : Sender {
+export function makeSender(contract: SandboxContract<WalletInplugV1>, secretKey: Buffer) : Sender {
     return {
         send: async (args: SenderArguments) => {
             let seqno = await contract.getSeqno();

@@ -1,5 +1,5 @@
-# Wallet v5r2
-Wallet v5 is custom version of wallet for use instead of v4.
+# Wallet Inplug-v1
+Wallet Inplug-v1 (previously known as v5) is custom version of wallet for use instead of v4.
 
 There are three main differences from previous versions:
 1. execute arbitrary code onchain. User can pass a continuation to be executed -- this is useful for predicting unsafe random.

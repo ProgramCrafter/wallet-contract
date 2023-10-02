@@ -4,7 +4,7 @@ import { keyPairFromSeed, mnemonicToPrivateKey, mnemonicToSeed } from "ton-crypt
 import { parseArgs } from "util";
 import yargs from "yargs";
 import { mnemonic } from "./env";
-import { makeSender, WalletContractV5R2 } from "./wallet-v5";
+import { makeSender, WalletInplugV1 } from "./wallet-v5";
 
 function expect(a: any) {
     return {
@@ -18,7 +18,7 @@ function expect(a: any) {
 const argv = yargs
     .option('action', {
         alias: 'a',
-        description: 'The action to perform (info|transfer|<unsupported>install|uninstall|execute)',
+        description: 'The action to perform (info|transfer|install|<unsupported>uninstall|execute)',
         type: 'string',
         demandOption: true,
     })
@@ -36,8 +36,9 @@ const argv = yargs
     })
     .option('body', {
         alias: 'b',
-        description: 'Optional body data',
+        description: 'Plugin/optional body data',
         type: 'string',
+        demandOption: false,
     }).argv;
 
 (async () => {
@@ -47,25 +48,33 @@ const argv = yargs
     const client = new TonClient({ endpoint });
 
     const key = await mnemonicToPrivateKey(mnemonic.split(' '));
-    const wallet = client.open(WalletContractV5R2.create({workchain: 0, publicKey: key.publicKey}));
+    const wallet = client.open(WalletInplugV1.create({workchain: 0, publicKey: key.publicKey}));
     console.log(wallet.address);
     console.log(await wallet.getBalance());
     console.log(await wallet.getSeqno());
 
     if (args.action == 'info') {
         return;
+    } else if (args.action == 'transfer') {
+        const destination = Address.parse(args.dest!!);
+        const value = toNano(args.value!!);
+        
+        const body = args.body ? Cell.fromBase64(args.body) : undefined;
+        
+        console.log(await makeSender(wallet, key.secretKey).send({
+            to: destination,
+            value,
+            body
+        }));
+    } else if (args.action == 'install') {
+        console.warn('Uninstalling plugins is not supported yet.');
+        const plugin = Cell.fromBase64(args.body!!);
+        await contract.sendInstallPlugin({secretKey: key.secretKey, code: plugin});
+    } else if (args.action == 'execute') {
+        const code = Cell.fromBase64(args.body!!);
+        await contract.sendExecuteCode({secretKey: key.secretKey, code: code});
+    } else {
+        expect(args.action).toBe('uninstall');
+        console.warn('Uninstalling plugins is not supported yet.');
     }
-
-    expect(args.action).toBe('transfer');
-
-    const destination = Address.parse(args.dest!!);
-    const value = toNano(args.value!!);
-
-    const body = args.body ? Cell.fromBase64(args.body) : undefined;
-
-    console.log(await makeSender(wallet, key.secretKey).send({
-        to: destination,
-        value,
-        body
-    }));
 })();
