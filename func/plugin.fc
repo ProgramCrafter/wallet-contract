@@ -2,11 +2,8 @@
 int seqno() method_id { return 0; }
 
 ;; extern "wallet-v5"
-;; @returns
-;;   - (ECDSA     256-bit public key, 0x0080de4f)
-;;   - (secp256r1 264-bit public key, 0x64ddebeb)
-;;   - (BLS       384-bit public key, 0x4d54d8d4)  not supported because of cost
-(slice, int) get_public_key() method_id { return (null(), -2); }
+;; @returns ECDSA 256-bit public key
+slice get_public_key() method_id { return null(); }
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -26,18 +23,18 @@ slice creator_address() method_id(119703) {
   return "EQCyoez1VF4HbNNq5Rbqfr3zKuoAjKorhK-YZr7LIIiVrSD7"a;
 }
 
-cell process_internal(int my_id, cell my_storage, int balance, int msg_value, cell in_msg, slice in_msg_body) method_id(121535) {
+cell process_internal(int my_id, cell my_storage, slice in_msg_body) method_id(121535) {
   send_raw_message(begin_cell()
     .store_uint(0x30, 6)
     .store_uint(0, 98 + 32)
     .store_slice("Internal with hash ")
-    .store_number(in_msg.cell_hash().digitize_number())
+    .store_number(in_msg_body.slice_hash().digitize_number())
     .end_cell(), 0);
   return my_storage;
 }
 
 cell process_external(int my_id, cell my_storage, slice in_msg_body) method_id(89430) {
-  if (my_storage.cell_null?()) {
+  ifnot (my_storage.begin_parse().slice_bits()) {
     accept_message();
     send_raw_message(begin_cell()
       .store_uint(0x30, 6)
@@ -47,7 +44,7 @@ cell process_external(int my_id, cell my_storage, slice in_msg_body) method_id(8
       .store_slice(" at seqno ")
       .store_number(seqno().digitize_number())
       .end_cell(), 0);
-    return begin_cell().end_cell();
+    return begin_cell().store_uint(0, 1).end_cell();
   }
   return my_storage;
 }

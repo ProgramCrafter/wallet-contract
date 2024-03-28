@@ -1,0 +1,14 @@
+{
+  "dependencies": {
+    "@orbs-network/ton-access": "^2.3.3",
+    "@ton-community/func-js": "^0.6.3-tvmbeta.3",
+    "@ton/sandbox": "0.16.0-tvmbeta.3",
+    "@ton/ton": "^13.11.1",
+    "@types/node": "^20.11.30",
+    "@types/yargs": "^17.0.32",
+    "npx": "^10.2.2",
+    "tvm-disassembler": "^3.0.0",
+    "yargs": "^17.7.2"
+  },
+  "lib": "es2021"
+}

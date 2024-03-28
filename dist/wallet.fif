@@ -1,0 +1,348 @@
+// automatically generated from `stdlib.fc` `wallet.fc` 
+PROGRAM{
+  DECLPROC load_contract
+  DECLPROC save_contract
+  85143 DECLMETHOD seqno
+  78748 DECLMETHOD get_public_key
+  76407 DECLMETHOD is_plugin_installed
+  DECLPROC check_any_signature
+  DECLPROC state_execute_plugin
+  DECLPROC execute_plugin
+  DECLPROC install_plugin
+  DECLPROC uninstall_plugin
+  DECLPROC ~do
+  DECLPROC main
+  DECLPROC recv_external
+  load_contract PROCINLINE:<{
+    c4 PUSH
+    CTOS
+    64 LDU
+    LDDICT
+  }>
+  save_contract PROCINLINE:<{
+    NEWC
+    64 STU
+    STDICT
+    SWAP
+    STSLICER
+    ENDC
+    c4 POP
+  }>
+  seqno PROC:<{
+    c4 PUSH
+    CTOS
+    64 PLDU
+  }>
+  get_public_key PROC:<{
+    c4 PUSH
+    CTOS
+    8 PUSHPOW2
+    SDCUTLAST
+  }>
+  is_plugin_installed PROC:<{
+    load_contract INLINECALLDICT
+    DROP
+    NIP
+    8 PUSHPOW2
+    DICTUGET
+    NULLSWAPIFNOT
+    NIP
+  }>
+  check_any_signature PROCINLINE:<{
+    SWAP
+    LDREF
+    OVER
+    HASHCU
+    s0 s3 XCHG
+    256 PLDU
+    s2 s3 XCHG
+    CHKSIGNU
+    310 THROWIFNOT
+  }>
+  state_execute_plugin PROCREF:<{
+    s3 PUSH
+    CTOS
+    1 LDU
+    SWAP
+    IFJMP:<{
+      LDREF
+      PLDREF
+      DUP
+      HASHCU
+      s2 PUSH
+      CTOS
+      BLESS
+      s0 s6 XCHG
+      32105 PUSHINT
+      MUL
+      121535 PUSHINT
+      ADD
+      s2 s3 XCHG
+      s5 s0 s6 XCHG3
+      4 1 CALLXARGS
+      DUP
+      HASHCU
+      s0 s3 XCHG2
+      EQUAL
+      IFJMP:<{
+        2DROP
+      }>
+      1 2 BLKDROP2
+      NEWC
+      STDICT
+      STREF
+      ENDC
+    }>
+    s4 POP
+    s0 s3 XCHG
+    33 LDU
+    LDREF
+    LDREF
+    32 LDU
+    NEWC
+    s5 s2 PUSH2
+    ADD
+    SWAP
+    33 STU
+    s4 s(-1) PUXC
+    STREF
+    s1 s2 XCHG
+    32 STU
+    OVER
+    STSLICER
+    s0 s6 XCHG
+    63 THROWIF
+    NOW
+    s0 s4 XCHG2
+    LESS
+    62 THROWIF
+    SWAP
+    CTOS
+    BLESS
+    s3 s5 XCHG
+    s1 s5 s0 XCHG3
+    121535 PUSHINT
+    SWAP
+    4 PUSHINT SWAP ONE   // addr data msg method in=4 f out=1
+    s5 PUSH              // addr data msg method in=4 f out=1 c4=data
+    // (293 sets c3=f, c4=data, returns c4', c5 and one value from stack)
+    293 RUNVM     // data' exitcode c4' c5
+    1 1 BLKDROP2  // data' exitcode c5
+    SWAP
+    1 GTINT
+    61 THROWIF
+    s0 s2 XCHG
+    STREF
+    ENDC
+    OVER
+    CTOS
+    LDREF
+    SWAP
+    HASHCU
+    68134197439415885698044414435951397869210496020759160419881882418413283430343 PUSHINT
+    EQUAL
+    60 THROWIFNOT
+    32 LDU
+    SWAP
+    247711853 PUSHINT
+    EQUAL
+    60 THROWIFNOT
+    8 LDU
+    SWAP
+    188 PUSHINT
+    AND
+    60 THROWIF
+    LDREF
+    ENDS
+    CTOS
+    4 LDU
+    SWAP
+    5 PUSHINT
+    AND
+    4 EQINT
+    59 THROWIFNOT
+    LDMSGADDR
+    NIP
+    LDMSGADDR
+    NIP
+    LDGRAMS
+    SKIPDICT
+    LDGRAMS
+    NIP
+    LDGRAMS
+    NIP
+    97 LDU
+    SWAP
+    1 PUSHINT
+    AND
+    59 THROWIF
+    1 LDU
+    SWAP
+    IF:<{
+      LDREF ENDS CTOS
+    }>
+    32 PLDUZ
+    s0 s4 XCHG
+    LDDICT
+    s5 s1 PUXC
+    32 PUSHINT
+    DICTUGET
+    NULLSWAPIFNOT
+    NIP
+    s0 s5 XCHG
+    0 EQINT
+    s1 s5 XCHG
+    OR
+    58 THROWIFNOT
+    s0 s3 XCHG
+    LDGRAMS
+    DROP
+    s1 s3 XCHG
+    LEQ
+    58 THROWIFNOT
+    c5 POPCTR
+  }>
+  execute_plugin PROCINLINE:<{
+    s0 s3 PUSH2
+    8 PUSHPOW2
+    DICTUGETREF
+    NULLSWAPIFNOT
+    128 THROWIFNOT
+    s3 s2 s3 XC2PU
+    state_execute_plugin INLINECALLDICT
+    s0 s2 XCHG
+    8 PUSHPOW2
+    DICTUSETREF
+  }>
+  install_plugin PROCINLINE:<{
+    8 PUSHPOW2
+    OVER
+    HASHCU
+    s0 s3 s3 XCHG3
+    DICTUSETREF
+  }>
+  uninstall_plugin PROCINLINE:<{
+    SWAP
+    8 PUSHPOW2
+    DICTUDEL
+  }>
+  ~do PROCINLINE:<{
+    CTOS
+    2 LDU
+    OVER
+    0 EQINT
+    IF:<{
+      NIP
+      DUP
+      256 PLDU
+      s1 s2 XCHG
+      uninstall_plugin INLINECALLDICT
+      DROP
+    }>ELSE<{
+      OVER
+      1 EQINT
+      IF:<{
+        NIP
+        LDREF
+        -ROT
+        install_plugin INLINECALLDICT
+      }>ELSE<{
+        SWAP
+        3 EQINT
+        IF:<{
+          LDREFRTOS
+          BLESS
+          0 0 CALLXARGS
+        }>ELSE<{
+          303 THROW
+        }>
+        SWAP
+      }>
+    }>
+    SWAP
+    PLDOPTREF
+  }>
+  main PROC:<{
+    DUP
+    32 PLDUZ
+    1154835125 PUSHINT
+    NEQ
+    IFRETALT
+    32 PUSHINT
+    SDSKIPFIRST
+    256 LDU
+    load_contract INLINECALLDICT
+    s1 s2 XCHG
+    0 PUSHINT
+    s0 s4 s5 XCHG3
+    execute_plugin INLINECALLDICT
+    ROT
+    save_contract INLINECALLDICT
+  }>
+  recv_external PROC:<{
+    32 LDU
+    OVER
+    338459908 PUSHINT
+    EQUAL
+    IF:<{
+      NIP
+      load_contract INLINECALLDICT
+      s3 s3 XCPU
+      check_any_signature INLINECALLDICT
+      CTOS
+      64 LDU
+      s1 s3 XCPU
+      EQUAL
+      312 THROWIFNOT
+      32 LDU
+      SWAP
+      NOW
+      GEQ
+      313 THROWIFNOT
+      s2 PUSH
+      INC
+      s4 s2 s(-2) PU2XC
+      save_contract INLINECALLDICT
+      COMMIT
+      ACCEPT
+      LDOPTREF
+      OVER
+      ISNULL
+      NOT
+      IF:<{
+        SWAP
+        c5 POPCTR
+      }>ELSE<{
+        NIP
+      }>
+      PLDOPTREF
+      WHILE:<{
+        DUP
+        ISNULL
+        NOT
+      }>DO<{
+        ~do INLINECALLDICT
+      }>
+      DROP
+      SWAP
+      INC
+      save_contract INLINECALLDICT
+    }>ELSE<{
+      SWAP
+      1154835125 PUSHINT
+      EQUAL
+      IF:<{
+        load_contract INLINECALLDICT
+        s0 s3 XCHG
+        256 LDU
+        -1 PUSHINT
+        s0 s2 XCHG
+        execute_plugin INLINECALLDICT
+        SWAP
+        save_contract INLINECALLDICT
+      }>ELSE<{
+        DROP
+      }>
+    }>
+  }>
+}END>c

@@ -1,10 +1,10 @@
+import { Address, Cell, toNano, TonClient } from "@ton/ton";
 import { getHttpEndpoint } from "@orbs-network/ton-access";
-import { Address, Cell, toNano, TonClient } from "ton";
-import { keyPairFromSeed, mnemonicToPrivateKey, mnemonicToSeed } from "ton-crypto";
-import { parseArgs } from "util";
+import { mnemonicToPrivateKey } from "@ton/crypto";
 import yargs from "yargs";
+
+import { makeSender, WalletInplugV2 } from "./wallet-inplug-v2";
 import { mnemonic } from "./env";
-import { makeSender, WalletInplugV1 } from "./wallet-v5";
 
 function expect(a: any) {
     return {
@@ -36,7 +36,13 @@ const argv = yargs
     })
     .option('body', {
         alias: 'b',
-        description: 'Plugin/optional body data',
+        description: 'Plugin storage/optional body data',
+        type: 'string',
+        demandOption: false,
+    })
+    .option('code', {
+        alias: 'c',
+        description: 'Invocable/plugin code',
         type: 'string',
         demandOption: false,
     }).argv;
@@ -48,10 +54,10 @@ const argv = yargs
     const client = new TonClient({ endpoint });
 
     const key = await mnemonicToPrivateKey(mnemonic.split(' '));
-    const wallet = client.open(WalletInplugV1.create({workchain: 0, publicKey: key.publicKey}));
+    const wallet = client.open(await WalletInplugV2.create({workchain: 0, publicKey: key.publicKey}));
     console.log(wallet.address);
-    console.log(await wallet.getBalance());
-    console.log(await wallet.getSeqno());
+    console.log('TON:  ', await wallet.getBalance());
+    console.log('Seqno:', await wallet.getSeqno());
 
     if (args.action == 'info') {
         return;
@@ -61,20 +67,23 @@ const argv = yargs
         
         const body = args.body ? Cell.fromBase64(args.body) : undefined;
         
-        console.log(await makeSender(wallet, key.secretKey).send({
+        console.log(await makeSender(wallet as any, key.secretKey).send({
             to: destination,
             value,
             body
         }));
     } else if (args.action == 'install') {
-        console.warn('Uninstalling plugins is not supported yet.');
-        const plugin = Cell.fromBase64(args.body!!);
-        await contract.sendInstallPlugin({secretKey: key.secretKey, code: plugin});
+        const pluginCode = Cell.fromBase64(args.code!);
+        const pluginData = args.body ? Cell.fromBase64(args.body!) : Cell.EMPTY;
+        await wallet.sendInstallPlugin({secretKey: key.secretKey, code: pluginCode, data: pluginData});
+    } else if (args.action == 'uninstall') {
+        const pluginCode = Cell.fromBase64(args.code!);
+        const pluginData = args.body ? Cell.fromBase64(args.body!) : Cell.EMPTY;
+        await wallet.sendUninstallPlugin({secretKey: key.secretKey, code: pluginCode, data: pluginData});
     } else if (args.action == 'execute') {
-        const code = Cell.fromBase64(args.body!!);
-        await contract.sendExecuteCode({secretKey: key.secretKey, code: code});
+        const code = Cell.fromBase64(args.code!);
+        await wallet.sendExecuteCode({secretKey: key.secretKey, code});
     } else {
-        expect(args.action).toBe('uninstall');
-        console.warn('Uninstalling plugins is not supported yet.');
+        console.warn('Unsupported operation');
     }
 })();
