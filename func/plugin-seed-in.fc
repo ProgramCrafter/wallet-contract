@@ -1,0 +1,36 @@
+int prefix_of(slice, slice) asm "SDPFX";
+int claimed_seed(slice block_seed, slice my_addr) asm "TWO HASHEXT_SHA256";
+int actual_seed() asm "RANDSEED";
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+() main() {
+  throw(65535);
+}
+
+;; extern "wallet-v5"
+cell process_external(int my_id, cell my_storage, slice in_msg_body) method_id(89430) {
+  ;; #_ block_seed:uint256 bounty:MsgAddressInt = InMsgBody;
+  
+  throw_if(100, my_storage.begin_parse().prefix_of(in_msg_body));
+  
+  slice block_seed = in_msg_body~load_bits(256);
+  slice me = my_address(); me~skip_bits(11);
+  throw_if(101, claimed_seed(block_seed, me) ^ actual_seed());
+  
+  slice dest = in_msg_body~load_msg_addr();
+  
+  accept_message();
+  
+  send_raw_message(begin_cell()
+    .store_uint(0x18, 6)
+    .store_slice(dest)
+    .store_coins(40000000)   ;; 0.04 TON per seed delivered
+    .store_uint(0, 107)
+    .end_cell(), 2);
+  
+  return begin_cell()
+    .store_slice(block_seed)
+    .end_cell();
+}
+
