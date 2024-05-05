@@ -1,5 +1,5 @@
 int prefix_of(slice, slice) asm "SDPFX";
-int claimed_seed(slice block_seed, slice my_addr) asm "TWO HASHEXT_SHA256";
+int claimed_seed(slice block_seed, builder my_addr) asm "TWO HASHEXT_SHA256";
 int actual_seed() asm "RANDSEED";
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -16,7 +16,10 @@ cell process_external(int my_id, cell my_storage, slice in_msg_body) method_id(8
   
   slice block_seed = in_msg_body~load_bits(256);
   slice me = my_address(); me~skip_bits(11);
-  throw_if(101, claimed_seed(block_seed, me) ^ actual_seed());
+  
+  ;; pending fix of https://github.com/ton-blockchain/ton/issues/978, account seed is calculated so
+  builder hashed = begin_cell().store_slice(me.preload_bits(32)).store_slice(me.preload_bits(224));
+  throw_if(101, claimed_seed(block_seed, hashed) ^ actual_seed());
   
   slice dest = in_msg_body~load_msg_addr();
   
